@@ -1,0 +1,1044 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex,nofollow">
+<meta name="theme-color" content="#F8F5EF">
+<title>Scentique — Admin Panel</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+/* ==========================================================================
+   SCENTIQUE ADMIN — same design system as the storefront, work-mode density
+   Ivory · White · Deep Charcoal · Champagne Gold
+   ========================================================================== */
+:root{
+  --ivory:#F8F5EF; --white:#FFFFFF; --charcoal:#171717; --soft:#4A4A4A;
+  --gold:#C6A15B; --gold-soft:rgba(198,161,91,.12);
+  --beige:#E9E1D5; --sand:#D8CBB9; --gray:#F1F1EF;
+  --border:#E5E0D8; --border-2:#EFEAE1;
+  --ok:#3F7D5E; --ok-bg:rgba(63,125,94,.12);
+  --warn:#8A6A3A; --warn-bg:rgba(198,161,91,.16);
+  --danger:#9A4A38; --danger-bg:rgba(154,74,56,.1);
+  --info:#3E6285; --info-bg:rgba(62,98,133,.12);
+  --serif:'Playfair Display',Georgia,serif;
+  --sans:'Inter',system-ui,-apple-system,sans-serif;
+  --r-card:12px; --r-btn:9px; --r-input:9px;
+  --sh-s:0 1px 2px rgba(23,23,23,.04);
+  --sh-m:0 8px 30px -14px rgba(23,23,23,.16);
+  --sh-l:0 24px 70px -28px rgba(23,23,23,.26);
+  --t:200ms cubic-bezier(.2,.8,.3,1);
+}
+*,*::before,*::after{box-sizing:border-box}
+body{margin:0;background:var(--ivory);color:var(--charcoal);font-family:var(--sans);
+  font-size:15px;line-height:1.6;-webkit-font-smoothing:antialiased}
+img{max-width:100%;display:block}
+a{color:var(--gold);text-decoration:none}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer;background:none;border:0;padding:0}
+:focus-visible{outline:2px solid var(--gold);outline-offset:2px;border-radius:4px}
+h1,h2,h3{font-family:var(--serif);font-weight:500;margin:0;line-height:1.18}
+
+/* ------------------------------------------------------------ login */
+.login{min-height:100vh;display:grid;place-items:center;padding:24px;
+  background:linear-gradient(160deg,var(--ivory),var(--beige))}
+.login-card{width:100%;max-width:400px;background:var(--white);border:1px solid var(--border);
+  border-radius:var(--r-card);padding:34px;box-shadow:var(--sh-m)}
+.login-card h1{font-size:1.7rem;letter-spacing:.14em;text-transform:uppercase;text-align:center}
+.login-card > p{text-align:center;color:var(--soft);font-size:.84rem;margin:8px 0 26px}
+
+/* ------------------------------------------------------------ shell */
+.shell{display:grid;grid-template-columns:246px 1fr;min-height:100vh}
+.side{background:var(--white);border-right:1px solid var(--border);position:sticky;top:0;
+  height:100vh;overflow-y:auto;display:flex;flex-direction:column}
+.side .brand{font-family:var(--serif);font-size:1.25rem;font-weight:500;letter-spacing:.16em;
+  text-transform:uppercase;padding:22px;border-bottom:1px solid var(--border)}
+.side .brand small{display:block;font-family:var(--sans);font-size:.58rem;font-weight:600;
+  letter-spacing:.2em;color:var(--gold);margin-top:5px;text-transform:uppercase}
+.side nav{padding:14px 12px;display:grid;gap:2px;flex:1}
+.side nav button{display:flex;align-items:center;gap:10px;width:100%;text-align:left;
+  padding:11px 14px;border-radius:var(--r-btn);font-size:.88rem;color:var(--soft);transition:all var(--t)}
+.side nav button:hover{background:var(--gray);color:var(--charcoal)}
+.side nav button.on{background:var(--charcoal);color:#fff}
+.side nav button .pill{margin-left:auto;background:var(--gold);color:#fff;font-size:.6rem;
+  font-weight:600;padding:1px 7px;border-radius:9px}
+.side .grp{font-size:.58rem;font-weight:600;letter-spacing:.18em;text-transform:uppercase;
+  color:var(--gold);padding:16px 14px 6px}
+.side .foot{padding:14px 20px 20px;border-top:1px solid var(--border);display:grid;gap:8px}
+
+.main{padding:22px 28px 70px;max-width:1340px}
+.topbar{display:flex;align-items:center;gap:12px;margin-bottom:22px;flex-wrap:wrap}
+.topbar h2{font-size:1.6rem}
+.topbar .sp{flex:1}
+.hamb{display:none}
+
+/* --------------------------------------------------------- controls */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:42px;
+  padding:0 18px;border-radius:var(--r-btn);background:var(--charcoal);color:#fff;
+  border:1px solid var(--charcoal);font-size:.76rem;font-weight:500;letter-spacing:.07em;
+  text-transform:uppercase;transition:all var(--t);white-space:nowrap}
+.btn:hover{background:#000;box-shadow:var(--sh-m)}
+.btn:active{transform:scale(.985)}
+.btn:disabled{opacity:.4;pointer-events:none}
+.btn-ghost{background:var(--white);color:var(--charcoal);border-color:var(--border)}
+.btn-ghost:hover{background:var(--gray);border-color:var(--charcoal);box-shadow:none}
+.btn-gold{background:var(--gold);border-color:var(--gold)}
+.btn-gold:hover{background:#b8904a;border-color:#b8904a}
+.btn-danger{background:var(--danger);border-color:var(--danger)}
+.btn-danger:hover{background:#843f2f;border-color:#843f2f}
+.btn-sm{min-height:34px;padding:0 13px;font-size:.68rem}
+.btn-block{width:100%}
+
+.card{background:var(--white);border:1px solid var(--border);border-radius:var(--r-card);
+  padding:22px;margin-bottom:18px;box-shadow:var(--sh-s)}
+.card > h3{margin-bottom:16px}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(168px,1fr));gap:14px;margin-bottom:22px}
+.stat{background:var(--white);border:1px solid var(--border);border-radius:var(--r-card);padding:18px;
+  box-shadow:var(--sh-s)}
+.stat b{display:block;font-family:var(--serif);font-size:1.85rem;font-weight:500;line-height:1.1}
+.stat span{font-size:.62rem;font-weight:600;letter-spacing:.16em;text-transform:uppercase;color:var(--soft)}
+
+.field{margin-bottom:15px}
+.field label{display:block;font-size:.62rem;font-weight:600;letter-spacing:.14em;
+  text-transform:uppercase;color:var(--soft);margin-bottom:7px}
+.field input,.field textarea,.field select{width:100%;min-height:44px;padding:10px 13px;
+  background:var(--white);border:1px solid var(--border);border-radius:var(--r-input);transition:border-color var(--t)}
+.field input:focus,.field textarea:focus,.field select:focus{outline:none;border-color:var(--gold)}
+.field textarea{min-height:100px;resize:vertical}
+.field small{display:block;color:var(--soft);font-size:.73rem;margin-top:5px}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:0 16px}
+.check{display:flex;align-items:center;gap:9px;margin-bottom:15px;font-size:.9rem}
+.check input{width:17px;height:17px;accent-color:var(--gold)}
+
+table{width:100%;border-collapse:collapse;font-size:.87rem}
+th{text-align:left;font-size:.6rem;font-weight:600;letter-spacing:.14em;text-transform:uppercase;
+  color:var(--soft);padding:11px 10px;border-bottom:1px solid var(--border);white-space:nowrap}
+td{padding:11px 10px;border-bottom:1px solid var(--border-2);vertical-align:middle}
+tr:hover td{background:var(--ivory)}
+td img{width:46px;height:46px;object-fit:cover;border-radius:8px;border:1px solid var(--border)}
+.table-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
+
+.tag{display:inline-block;padding:3px 10px;border-radius:100px;font-size:.63rem;font-weight:600;
+  letter-spacing:.08em;text-transform:uppercase}
+.tag.pending{background:var(--warn-bg);color:var(--warn)}
+.tag.confirmed{background:var(--info-bg);color:var(--info)}
+.tag.shipped{background:var(--gold-soft);color:var(--gold)}
+.tag.delivered{background:var(--ok-bg);color:var(--ok)}
+.tag.cancelled{background:var(--danger-bg);color:var(--danger)}
+.tag.on{background:var(--ok-bg);color:var(--ok)}
+.tag.off{background:var(--gray);color:var(--soft)}
+
+/* ----------------------------------------------------------- modal */
+.modal{position:fixed;inset:0;background:rgba(23,23,23,.5);backdrop-filter:blur(3px);z-index:100;
+  display:none;padding:20px;overflow-y:auto}
+.modal.open{display:block}
+.modal-box{background:var(--ivory);border:1px solid var(--border);border-radius:var(--r-card);
+  max-width:840px;margin:20px auto;padding:24px;box-shadow:var(--sh-l);
+  animation:mIn 240ms cubic-bezier(.2,.8,.3,1)}
+@keyframes mIn{from{opacity:0;transform:translateY(14px)}}
+.modal-head{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-bottom:20px;
+  padding-bottom:14px;border-bottom:1px solid var(--border)}
+.modal-head h3{font-size:1.3rem}
+.modal-foot{display:flex;gap:9px;justify-content:flex-end;margin-top:20px;padding-top:16px;
+  border-top:1px solid var(--border);flex-wrap:wrap}
+
+/* -------------------------------------------------------- uploader */
+.up{border:1px dashed var(--border);border-radius:var(--r-input);padding:15px;text-align:center;
+  background:var(--white)}
+.up input[type=file]{display:none}
+.up .prev{display:flex;gap:9px;flex-wrap:wrap;margin-top:11px;justify-content:center}
+.up .prev figure{margin:0;position:relative}
+.up .prev img{width:72px;height:72px;object-fit:cover;border:1px solid var(--border);border-radius:8px}
+.up .prev button{position:absolute;top:-7px;right:-7px;width:22px;height:22px;border-radius:50%;
+  background:var(--danger);color:#fff;font-size:.74rem;line-height:1;display:grid;place-items:center}
+
+.toasts{position:fixed;right:20px;bottom:20px;z-index:200;display:grid;gap:9px}
+.toast{background:var(--charcoal);color:#fff;border-radius:var(--r-btn);padding:12px 18px;
+  font-size:.84rem;box-shadow:var(--sh-l);animation:tIn 240ms ease-out;max-width:320px}
+.toast.err{background:var(--danger)}
+@keyframes tIn{from{opacity:0;transform:translateY(12px)}}
+
+.empty{padding:48px 20px;text-align:center;color:var(--soft)}
+.searchbar{display:flex;gap:9px;margin-bottom:14px;flex-wrap:wrap}
+.searchbar input,.searchbar select{min-height:42px;padding:0 13px;background:var(--white);
+  border:1px solid var(--border);border-radius:var(--r-input)}
+.searchbar input{flex:1;min-width:180px}
+.searchbar input:focus,.searchbar select:focus{outline:none;border-color:var(--gold)}
+.scrim{position:fixed;inset:0;background:rgba(23,23,23,.4);z-index:80;display:none}
+.scrim.on{display:block}
+
+@media (max-width:900px){
+  .shell{grid-template-columns:1fr}
+  .side{position:fixed;left:0;top:0;width:262px;z-index:90;transform:translateX(-100%);
+    transition:transform 300ms cubic-bezier(.2,.8,.3,1);box-shadow:var(--sh-l)}
+  .side.open{transform:none}
+  .hamb{display:inline-flex}
+  .main{padding:16px 16px 60px}
+  .row{grid-template-columns:1fr}
+  .modal{padding:0}
+  .modal-box{margin:0;min-height:100vh;border-radius:0;border:0}
+  .toasts{left:16px;right:16px;bottom:16px}
+  .toast{max-width:none}
+}
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important}
+}
+
+</style>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='7' fill='%23171717'/><text x='16' y='22' font-family='Georgia' font-size='16' fill='%23C6A15B' text-anchor='middle'>S</text></svg>">
+</head>
+<body>
+
+<div class="login" id="login" style="display:none">
+  <div class="login-card">
+    <h1>Scentique</h1>
+    <p>Admin panel — sign in to manage your store</p>
+    <div class="field"><label>Email</label>
+      <input id="lgEmail" type="email" autocomplete="username" placeholder="admin@scentiqueperfumes.store"></div>
+    <div class="field"><label>Password</label>
+      <input id="lgPass" type="password" autocomplete="current-password" placeholder="••••••••"></div>
+    <button class="btn btn-block" id="lgBtn">Sign in</button>
+    <p id="lgErr" style="color:var(--danger);min-height:20px;margin:14px 0 0;font-size:.84rem"></p>
+  </div>
+</div>
+
+<div class="shell" id="shell" style="display:none">
+  <aside class="side" id="side">
+    <div class="brand">Scentique<small>Control Panel</small></div>
+    <nav id="nav"></nav>
+    <div class="foot">
+      <a class="btn btn-ghost btn-block btn-sm" href="index.html" target="_blank" rel="noopener">View store</a>
+      <button class="btn btn-ghost btn-block btn-sm" id="logout">Sign out</button>
+    </div>
+  </aside>
+
+  <main class="main">
+    <div class="topbar">
+      <button class="btn btn-ghost btn-sm hamb" id="hamb" aria-label="Menu">☰</button>
+      <h2 id="pageTitle">Dashboard</h2>
+      <span class="sp"></span>
+      <span id="pageActions"></span>
+    </div>
+    <div id="view"></div>
+  </main>
+</div>
+
+<div class="scrim" id="sideScrim"></div>
+<div class="modal" id="modal"><div class="modal-box" id="modalBox"></div></div>
+<div class="toasts" id="toasts"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+/* =============================================================
+   Scentique — Supabase connection
+   Ye keys public hain (publishable / anon). Safe to commit.
+   ============================================================= */
+window.SCENTIQUE_CONFIG = {
+  SUPABASE_URL: "https://ptwgiadzpzawjftfxwwf.supabase.co",
+  SUPABASE_KEY: "sb_publishable_Qoy-USZ2VP94_n5x1BcjWQ_HV5deVBB",
+  SITE_NAME: "Scentique",
+  SITE_DOMAIN: "scentiqueperfumes.store"
+};
+
+/* =============================================================
+   SCENTIQUE ADMIN
+   Sab kuch yahan se control hota hai — jo bhi save karenge wo
+   turant user website par show hone lagega.
+   ============================================================= */
+(() => {
+"use strict";
+
+const CFG = window.SCENTIQUE_CONFIG || {};
+let sb = null;
+try { if (window.supabase && CFG.SUPABASE_URL) sb = window.supabase.createClient(CFG.SUPABASE_URL, CFG.SUPABASE_KEY); }
+catch (e) { console.error(e); }
+if (!sb) {
+  document.body.innerHTML = `<div class="login"><div class="login-card">
+    <h1>Scentique</h1>
+    <p style="color:var(--danger)">Supabase library load nahi hui.</p>
+    <p>Internet connection check karein aur page refresh karein. Admin panel ko
+    Supabase se connect hona zaroori hai.</p>
+    <button class="btn btn-block" onclick="location.reload()">Reload</button>
+  </div></div>`;
+  throw new Error("supabase-js not loaded");
+}
+
+const $  = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c =>
+  ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c]));
+const slugify = s => String(s).toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+const money = n => "Rs. " + Number(n || 0).toLocaleString("en-PK");
+const dt = s => s ? new Date(s).toLocaleString("en-PK", { dateStyle: "medium", timeStyle: "short" }) : "—";
+
+function toast(msg, err) {
+  const t = document.createElement("div");
+  t.className = "toast" + (err ? " err" : ""); t.textContent = msg;
+  $("#toasts").appendChild(t);
+  setTimeout(() => t.remove(), 3200);
+}
+
+/* ------------------------------------------------------ storage */
+async function uploadFile(bucket, file) {
+  const ext = (file.name.split(".").pop() || "jpg").toLowerCase();
+  const path = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+  const { error } = await sb.storage.from(bucket).upload(path, file, { cacheControl: "3600", upsert: false });
+  if (error) throw error;
+  return sb.storage.from(bucket).getPublicUrl(path).data.publicUrl;
+}
+
+/* ------------------------------------------------------ schemas */
+const CATS_OPTIONS = async () => {
+  const { data } = await sb.from("perfume_categories").select("id,name").order("sort_order");
+  return (data || []).map(c => ({ value: c.id, label: c.name }));
+};
+
+const SECTIONS = {
+  dashboard: { title: "Dashboard", custom: "dashboard" },
+  orders:    { title: "Orders",    custom: "orders" },
+
+  products: {
+    title: "Products", table: "perfume_products", bucket: "perfume-products",
+    order: "sort_order", custom: "products",
+    columns: [
+      { key: "main_image", label: "", type: "img" },
+      { key: "name", label: "Product" },
+      { key: "price", label: "Price", type: "money" },
+      { key: "sale_price", label: "Sale", type: "money" },
+      { key: "stock", label: "Stock" },
+      { key: "is_featured", label: "Featured", type: "bool" },
+      { key: "is_active", label: "Live", type: "bool" }
+    ],
+    fields: [
+      { key: "name", label: "Product name", req: true },
+      { key: "slug", label: "URL slug", hint: "Khali chhod dein to naam se ban jayega" },
+      { key: "category_id", label: "Collection", type: "select", optionsFn: CATS_OPTIONS },
+      { key: "short_desc", label: "Short description (card par dikhta hai)" },
+      { key: "description", label: "Full description", type: "textarea" },
+      { key: "price", label: "Price (Rs.)", type: "number", req: true, half: true },
+      { key: "sale_price", label: "Sale price (Rs.) — optional", type: "number", half: true },
+      { key: "sku", label: "SKU", half: true },
+      { key: "stock", label: "Stock quantity", type: "number", half: true },
+      { key: "size_ml", label: "Size (ml)", type: "number", half: true },
+      { key: "gender", label: "Best for", type: "select", half: true,
+        options: [{ value: "men", label: "Men" }, { value: "women", label: "Women" }, { value: "unisex", label: "Unisex" }] },
+      { key: "fragrance_family", label: "Fragrance family", half: true, hint: "Woody, Floral, Fresh…" },
+      { key: "concentration", label: "Concentration", half: true, hint: "EDP, EDT, Attar Oil…" },
+      { key: "longevity", label: "Longevity", half: true, hint: "8-10 hours" },
+      { key: "badge", label: "Badge", half: true, hint: "New / Best Seller / Limited" },
+      { key: "top_notes", label: "Top notes" },
+      { key: "heart_notes", label: "Heart notes" },
+      { key: "base_notes", label: "Base notes" },
+      { key: "main_image", label: "Main image", type: "image" },
+      { key: "gallery", label: "Gallery images", type: "gallery" },
+      { key: "sort_order", label: "Sort order", type: "number", half: true },
+      { key: "is_featured", label: "Show in Featured section", type: "check" },
+      { key: "is_active", label: "Website par live rakhein", type: "check", def: true }
+    ]
+  },
+
+  categories: {
+    title: "Collections", table: "perfume_categories", bucket: "perfume-categories", order: "sort_order",
+    columns: [
+      { key: "image_url", label: "", type: "img" },
+      { key: "name", label: "Collection" }, { key: "slug", label: "Slug" },
+      { key: "sort_order", label: "Order" }, { key: "is_active", label: "Live", type: "bool" }
+    ],
+    fields: [
+      { key: "name", label: "Collection name", req: true },
+      { key: "slug", label: "URL slug" },
+      { key: "description", label: "Short description" },
+      { key: "image_url", label: "Cover image", type: "image" },
+      { key: "sort_order", label: "Sort order", type: "number", half: true },
+      { key: "is_active", label: "Live", type: "check", def: true }
+    ]
+  },
+
+  banners: {
+    title: "Hero banners", table: "perfume_banners", bucket: "perfume-banners", order: "sort_order",
+    columns: [
+      { key: "image_url", label: "", type: "img" },
+      { key: "title", label: "Title" }, { key: "eyebrow", label: "Eyebrow" },
+      { key: "sort_order", label: "Order" }, { key: "is_active", label: "Live", type: "bool" }
+    ],
+    fields: [
+      { key: "eyebrow", label: "Small label above heading", hint: "Signature Collection" },
+      { key: "title", label: "Heading", req: true },
+      { key: "subtitle", label: "Subheading", type: "textarea" },
+      { key: "image_url", label: "Background image", type: "image", hint: "1920×1080 ya isse bara" },
+      { key: "button_text", label: "Button text", half: true, def: "Shop now" },
+      { key: "button_link", label: "Button link", half: true, def: "#/shop", hint: "#/shop ya #/product/oud-noir" },
+      { key: "sort_order", label: "Sort order", type: "number", half: true },
+      { key: "is_active", label: "Live", type: "check", def: true }
+    ]
+  },
+
+  reviews: { title: "Reviews", custom: "reviews" },
+
+  faqs: {
+    title: "FAQs", table: "perfume_faqs", order: "sort_order",
+    columns: [{ key: "question", label: "Question" }, { key: "sort_order", label: "Order" }, { key: "is_active", label: "Live", type: "bool" }],
+    fields: [
+      { key: "question", label: "Question", req: true },
+      { key: "answer", label: "Answer", type: "textarea", req: true },
+      { key: "sort_order", label: "Sort order", type: "number", half: true },
+      { key: "is_active", label: "Live", type: "check", def: true }
+    ]
+  },
+
+  pages: {
+    title: "Pages", table: "perfume_pages",
+    columns: [{ key: "title", label: "Page" }, { key: "slug", label: "Slug" }, { key: "is_active", label: "Live", type: "bool" }],
+    fields: [
+      { key: "title", label: "Page title", req: true },
+      { key: "slug", label: "URL slug", hint: "shipping, returns, privacy…" },
+      { key: "content", label: "Content", type: "textarea", hint: "Har nayi line ek paragraph banegi" },
+      { key: "is_active", label: "Live", type: "check", def: true }
+    ]
+  },
+
+  footer: {
+    title: "Footer links", table: "perfume_footer_links", order: "sort_order",
+    columns: [{ key: "section", label: "Column" }, { key: "label", label: "Label" }, { key: "url", label: "Link" },
+              { key: "sort_order", label: "Order" }, { key: "is_active", label: "Live", type: "bool" }],
+    fields: [
+      { key: "section", label: "Footer column", type: "select", req: true,
+        options: [{ value: "shop", label: "Shop" }, { value: "help", label: "Help" }, { value: "company", label: "Company" }] },
+      { key: "label", label: "Link text", req: true },
+      { key: "url", label: "Link URL", req: true, hint: "#/shop?cat=for-him, #/contact, ya poora https link" },
+      { key: "sort_order", label: "Sort order", type: "number", half: true },
+      { key: "is_active", label: "Live", type: "check", def: true }
+    ]
+  },
+
+  messages:    { title: "Messages",    custom: "messages" },
+  subscribers: { title: "Subscribers", custom: "subscribers" },
+  settings:    { title: "Site settings", custom: "settings" }
+};
+
+const NAV_GROUPS = [
+  ["", ["dashboard", "orders"]],
+  ["Catalog", ["products", "categories", "reviews"]],
+  ["Content", ["banners", "pages", "faqs", "footer"]],
+  ["Inbox", ["messages", "subscribers"]],
+  ["Configure", ["settings"]]
+];
+
+/* --------------------------------------------------------- auth */
+async function boot() {
+  const { data: { session } } = await sb.auth.getSession();
+  if (session) showApp(); else showLogin();
+  sb.auth.onAuthStateChange((_e, s) => { if (!s) showLogin(); });
+}
+
+function showLogin() {
+  $("#login").style.display = "grid";
+  $("#shell").style.display = "none";
+}
+
+async function signIn() {
+  const btn = $("#lgBtn"); $("#lgErr").textContent = "";
+  btn.disabled = true; btn.textContent = "Signing in…";
+  const { error } = await sb.auth.signInWithPassword({
+    email: $("#lgEmail").value.trim(), password: $("#lgPass").value
+  });
+  btn.disabled = false; btn.textContent = "Sign in";
+  if (error) { $("#lgErr").textContent = error.message; return; }
+  showApp();
+}
+
+function showApp() {
+  $("#login").style.display = "none";
+  $("#shell").style.display = "grid";
+  paintNav();
+  go(location.hash.replace("#", "") || "dashboard");
+}
+
+/* ---------------------------------------------------------- nav */
+let badges = { orders: 0, reviews: 0, messages: 0 };
+
+function paintNav() {
+  $("#nav").innerHTML = NAV_GROUPS.map(([grp, keys]) =>
+    (grp ? `<div class="grp">${grp}</div>` : "") +
+    keys.map(k => `<button data-go="${k}">${esc(SECTIONS[k].title)}
+      ${badges[k] ? `<span class="pill">${badges[k]}</span>` : ""}</button>`).join("")
+  ).join("");
+  $$("#nav button").forEach(b => b.addEventListener("click", () => {
+    go(b.dataset.go); side.classList.remove("open"); sideScrim.classList.remove("on");
+  }));
+  markActive();
+}
+const markActive = () => $$("#nav button").forEach(b => b.classList.toggle("on", b.dataset.go === current));
+
+let current = "dashboard";
+function go(key) {
+  if (!SECTIONS[key]) key = "dashboard";
+  current = key; location.hash = key;
+  $("#pageTitle").textContent = SECTIONS[key].title;
+  $("#pageActions").innerHTML = "";
+  markActive();
+  const s = SECTIONS[key];
+  if (s.custom === "dashboard")   return viewDashboard();
+  if (s.custom === "orders")      return viewOrders();
+  if (s.custom === "reviews")     return viewReviews();
+  if (s.custom === "messages")    return viewMessages();
+  if (s.custom === "subscribers") return viewSubscribers();
+  if (s.custom === "settings")    return viewSettings();
+  return viewCrud(key);
+}
+
+/* ---------------------------------------------------- dashboard */
+async function viewDashboard() {
+  $("#view").innerHTML = `<div class="card">Loading…</div>`;
+  const q = (t, sel = "*", opts = {}) => sb.from(t).select(sel, { count: "exact", ...opts });
+  const [orders, products, reviews, msgs, subs] = await Promise.all([
+    sb.from("perfume_orders").select("*").order("created_at", { ascending: false }).limit(200),
+    q("perfume_products", "id", { head: true }),
+    sb.from("perfume_reviews").select("*").eq("is_approved", false),
+    sb.from("perfume_messages").select("*").eq("is_read", false),
+    q("perfume_subscribers", "id", { head: true })
+  ]);
+
+  const list = orders.data || [];
+  const pending = list.filter(o => o.status === "pending");
+  const revenue = list.filter(o => o.status !== "cancelled").reduce((s, o) => s + Number(o.total || 0), 0);
+  badges = { orders: pending.length, reviews: (reviews.data || []).length, messages: (msgs.data || []).length };
+  paintNav();
+
+  $("#view").innerHTML = `
+    <div class="stats">
+      <div class="stat"><b>${list.length}</b><span>Total orders</span></div>
+      <div class="stat"><b>${pending.length}</b><span>Pending orders</span></div>
+      <div class="stat"><b>${money(revenue)}</b><span>Order value</span></div>
+      <div class="stat"><b>${products.count ?? 0}</b><span>Products</span></div>
+      <div class="stat"><b>${badges.reviews}</b><span>Reviews to approve</span></div>
+      <div class="stat"><b>${subs.count ?? 0}</b><span>Subscribers</span></div>
+    </div>
+    <div class="card">
+      <h3 style="margin-bottom:16px">Latest orders</h3>
+      ${list.length ? `<div class="table-wrap"><table>
+        <thead><tr><th>Order</th><th>Customer</th><th>City</th><th>Total</th><th>Status</th><th>Date</th></tr></thead>
+        <tbody>${list.slice(0, 8).map(o => `<tr>
+          <td>${esc(o.order_number || "—")}</td><td>${esc(o.customer_name)}</td><td>${esc(o.city)}</td>
+          <td>${money(o.total)}</td><td><span class="tag ${esc(o.status)}">${esc(o.status)}</span></td>
+          <td>${dt(o.created_at)}</td></tr>`).join("")}</tbody></table></div>`
+        : `<div class="empty">Abhi tak koi order nahi aaya.</div>`}
+    </div>
+    <div class="card">
+      <h3 style="margin-bottom:10px">Shuru kahan se karein</h3>
+      <p style="color:var(--muted);margin:0 0 14px">Products add karein, phir hero banner aur site settings set karein —
+        website par turant update ho jayega.</p>
+      <button class="btn btn-sm" data-jump="products">Add products</button>
+      <button class="btn btn-ghost btn-sm" data-jump="settings">Site settings</button>
+    </div>`;
+  $$("[data-jump]").forEach(b => b.addEventListener("click", () => go(b.dataset.jump)));
+}
+
+/* ------------------------------------------------------- orders */
+const ORDER_STATUS = ["pending", "confirmed", "shipped", "delivered", "cancelled"];
+
+async function viewOrders() {
+  $("#view").innerHTML = `<div class="card">Loading…</div>`;
+  const { data } = await sb.from("perfume_orders").select("*").order("created_at", { ascending: false });
+  const rows = data || [];
+
+  const render = (filter = "", q = "") => {
+    const list = rows.filter(o =>
+      (!filter || o.status === filter) &&
+      (!q || (o.customer_name + o.phone + (o.order_number || "") + o.city).toLowerCase().includes(q.toLowerCase())));
+    $("#ordBody").innerHTML = list.length ? list.map(o => `
+      <tr>
+        <td><strong>${esc(o.order_number || "—")}</strong></td>
+        <td>${esc(o.customer_name)}<br><small style="color:var(--muted)">${esc(o.phone)}</small></td>
+        <td>${esc(o.city)}</td>
+        <td>${money(o.total)}</td>
+        <td><span class="tag ${esc(o.status)}">${esc(o.status)}</span></td>
+        <td><small style="color:var(--muted)">${dt(o.created_at)}</small></td>
+        <td style="white-space:nowrap">
+          <button class="btn btn-ghost btn-sm" data-view="${esc(o.id)}">View</button>
+          <a class="btn btn-ghost btn-sm" target="_blank" rel="noopener"
+             href="https://wa.me/${esc(String(o.phone).replace(/\D/g,"").replace(/^0/,"92"))}?text=${encodeURIComponent(`Assalam o Alaikum ${o.customer_name}! Aapka Scentique order ${o.order_number} confirm karna hai.`)}">WhatsApp</a>
+        </td>
+      </tr>`).join("") : `<tr><td colspan="7"><div class="empty">Koi order nahi mila.</div></td></tr>`;
+    $$("[data-view]").forEach(b => b.addEventListener("click", () => openOrder(rows.find(x => x.id === b.dataset.view))));
+  };
+
+  $("#view").innerHTML = `
+    <div class="card">
+      <div class="searchbar">
+        <input id="ordSearch" placeholder="Naam, phone ya order number se dhoondein">
+        <select id="ordFilter">
+          <option value="">All statuses</option>
+          ${ORDER_STATUS.map(s => `<option value="${s}">${s}</option>`).join("")}
+        </select>
+      </div>
+      <div class="table-wrap"><table>
+        <thead><tr><th>Order</th><th>Customer</th><th>City</th><th>Total</th><th>Status</th><th>Placed</th><th></th></tr></thead>
+        <tbody id="ordBody"></tbody></table></div>
+    </div>`;
+  render();
+  $("#ordSearch").addEventListener("input", e => render($("#ordFilter").value, e.target.value));
+  $("#ordFilter").addEventListener("change", e => render(e.target.value, $("#ordSearch").value));
+}
+
+async function openOrder(o) {
+  if (!o) return;
+  const { data: items } = await sb.from("perfume_order_items").select("*").eq("order_id", o.id);
+  openModal(`Order ${esc(o.order_number || "")}`, `
+    <div class="row">
+      <div><h3 style="font-size:1.05rem;margin-bottom:8px">Customer</h3>
+        <p style="margin:0;color:var(--muted)">
+          ${esc(o.customer_name)}<br>${esc(o.phone)}<br>${esc(o.email || "")}<br>
+          ${esc(o.address)}<br>${esc(o.city)}
+        </p></div>
+      <div><h3 style="font-size:1.05rem;margin-bottom:8px">Order</h3>
+        <p style="margin:0;color:var(--muted)">
+          Placed: ${dt(o.created_at)}<br>Payment: ${esc(o.payment_method)}<br>
+          Subtotal: ${money(o.subtotal)}<br>Shipping: ${money(o.shipping)}<br>
+          <strong style="color:var(--gilt)">Total: ${money(o.total)}</strong>
+        </p></div>
+    </div>
+    ${o.notes ? `<p style="color:var(--muted)"><strong>Note:</strong> ${esc(o.notes)}</p>` : ""}
+    <div class="table-wrap" style="margin-top:16px"><table>
+      <thead><tr><th>Item</th><th>Size</th><th>Price</th><th>Qty</th><th>Line</th></tr></thead>
+      <tbody>${(items || []).map(i => `<tr><td>${esc(i.product_name)}</td><td>${esc(i.size_ml || "")}ml</td>
+        <td>${money(i.price)}</td><td>${i.qty}</td><td>${money(i.price * i.qty)}</td></tr>`).join("")}</tbody>
+    </table></div>
+    <div class="field" style="margin-top:20px"><label>Status</label>
+      <select id="ordStatus">${ORDER_STATUS.map(s =>
+        `<option value="${s}" ${o.status === s ? "selected" : ""}>${s}</option>`).join("")}</select></div>`,
+    [
+      { label: "Delete order", cls: "btn-danger", fn: async () => {
+          if (!confirm("Ye order permanently delete ho jayega. Confirm?")) return;
+          await sb.from("perfume_orders").delete().eq("id", o.id);
+          closeModal(); toast("Order deleted"); viewOrders();
+        } },
+      { label: "Save status", fn: async () => {
+          await sb.from("perfume_orders").update({ status: $("#ordStatus").value }).eq("id", o.id);
+          closeModal(); toast("Status updated"); viewOrders();
+        } }
+    ]);
+}
+
+/* ------------------------------------------------------ reviews */
+async function viewReviews() {
+  $("#view").innerHTML = `<div class="card">Loading…</div>`;
+  const [{ data: revs }, { data: prods }] = await Promise.all([
+    sb.from("perfume_reviews").select("*").order("created_at", { ascending: false }),
+    sb.from("perfume_products").select("id,name")
+  ]);
+  const pname = id => (prods || []).find(p => p.id === id)?.name || "—";
+  const list = revs || [];
+  $("#view").innerHTML = `<div class="card">
+    ${list.length ? `<div class="table-wrap"><table>
+      <thead><tr><th>Product</th><th>Customer</th><th>Rating</th><th>Comment</th><th>Status</th><th></th></tr></thead>
+      <tbody>${list.map(r => `<tr>
+        <td>${esc(pname(r.product_id))}</td>
+        <td>${esc(r.customer_name)}<br><small style="color:var(--muted)">${esc(r.city || "")}</small></td>
+        <td style="color:var(--gilt)">${"★".repeat(r.rating)}</td>
+        <td style="max-width:320px;color:var(--muted)">${esc(r.comment || "")}</td>
+        <td><span class="tag ${r.is_approved ? "on" : "pending"}">${r.is_approved ? "Live" : "Pending"}</span></td>
+        <td style="white-space:nowrap">
+          <button class="btn btn-sm" data-appr="${esc(r.id)}" data-val="${r.is_approved ? 0 : 1}">
+            ${r.is_approved ? "Hide" : "Approve"}</button>
+          <button class="btn btn-danger btn-sm" data-del="${esc(r.id)}">Delete</button>
+        </td></tr>`).join("")}</tbody></table></div>`
+      : `<div class="empty">Abhi koi review nahi aaya.</div>`}</div>`;
+
+  $$("[data-appr]").forEach(b => b.addEventListener("click", async () => {
+    await sb.from("perfume_reviews").update({ is_approved: b.dataset.val === "1" }).eq("id", b.dataset.appr);
+    toast("Review updated"); viewReviews();
+  }));
+  $$("[data-del]").forEach(b => b.addEventListener("click", async () => {
+    if (!confirm("Review delete karein?")) return;
+    await sb.from("perfume_reviews").delete().eq("id", b.dataset.del);
+    toast("Review deleted"); viewReviews();
+  }));
+}
+
+/* ----------------------------------------------------- messages */
+async function viewMessages() {
+  const { data } = await sb.from("perfume_messages").select("*").order("created_at", { ascending: false });
+  const list = data || [];
+  $("#view").innerHTML = `<div class="card">
+    ${list.length ? `<div class="table-wrap"><table>
+      <thead><tr><th>Name</th><th>Contact</th><th>Message</th><th>Received</th><th></th></tr></thead>
+      <tbody>${list.map(m => `<tr style="${m.is_read ? "opacity:.6" : ""}">
+        <td>${esc(m.name)}</td>
+        <td><small>${esc(m.email || "")}<br>${esc(m.phone || "")}</small></td>
+        <td style="max-width:380px;color:var(--muted)">${esc(m.message)}</td>
+        <td><small style="color:var(--muted)">${dt(m.created_at)}</small></td>
+        <td style="white-space:nowrap">
+          ${m.is_read ? "" : `<button class="btn btn-ghost btn-sm" data-read="${esc(m.id)}">Mark read</button>`}
+          <button class="btn btn-danger btn-sm" data-del="${esc(m.id)}">Delete</button>
+        </td></tr>`).join("")}</tbody></table></div>`
+      : `<div class="empty">Inbox khali hai.</div>`}</div>`;
+
+  $$("[data-read]").forEach(b => b.addEventListener("click", async () => {
+    await sb.from("perfume_messages").update({ is_read: true }).eq("id", b.dataset.read);
+    viewMessages();
+  }));
+  $$("[data-del]").forEach(b => b.addEventListener("click", async () => {
+    if (!confirm("Message delete karein?")) return;
+    await sb.from("perfume_messages").delete().eq("id", b.dataset.del); viewMessages();
+  }));
+}
+
+async function viewSubscribers() {
+  const { data } = await sb.from("perfume_subscribers").select("*").order("created_at", { ascending: false });
+  const list = data || [];
+  $("#pageActions").innerHTML = list.length ? `<button class="btn btn-sm" id="copyEmails">Copy all emails</button>` : "";
+  $("#view").innerHTML = `<div class="card">
+    ${list.length ? `<div class="table-wrap"><table><thead><tr><th>Email</th><th>Joined</th><th></th></tr></thead>
+      <tbody>${list.map(s => `<tr><td>${esc(s.email)}</td><td><small style="color:var(--muted)">${dt(s.created_at)}</small></td>
+      <td><button class="btn btn-danger btn-sm" data-del="${esc(s.id)}">Remove</button></td></tr>`).join("")}
+      </tbody></table></div>` : `<div class="empty">Abhi koi subscriber nahi.</div>`}</div>`;
+  $("#copyEmails")?.addEventListener("click", () => {
+    navigator.clipboard.writeText(list.map(s => s.email).join(", ")); toast("Emails copied");
+  });
+  $$("[data-del]").forEach(b => b.addEventListener("click", async () => {
+    await sb.from("perfume_subscribers").delete().eq("id", b.dataset.del); viewSubscribers();
+  }));
+}
+
+/* -------------------------------------------------- CRUD engine */
+async function viewCrud(key) {
+  const S = SECTIONS[key];
+  $("#pageActions").innerHTML = `<button class="btn btn-sm" id="addNew">+ Add ${esc(S.title.replace(/s$/, ""))}</button>`;
+  $("#view").innerHTML = `<div class="card">Loading…</div>`;
+
+  let q = sb.from(S.table).select("*");
+  q = S.order ? q.order(S.order) : q.order("created_at", { ascending: false });
+  const { data, error } = await q;
+  if (error) { $("#view").innerHTML = `<div class="card"><div class="empty">${esc(error.message)}</div></div>`; return; }
+  const rows = data || [];
+
+  $("#view").innerHTML = `<div class="card">
+    ${rows.length ? `<div class="table-wrap"><table>
+      <thead><tr>${S.columns.map(c => `<th>${esc(c.label)}</th>`).join("")}<th></th></tr></thead>
+      <tbody>${rows.map(r => `<tr>
+        ${S.columns.map(c => `<td>${cell(r, c)}</td>`).join("")}
+        <td style="white-space:nowrap">
+          <button class="btn btn-ghost btn-sm" data-edit="${esc(r.id)}">Edit</button>
+          <button class="btn btn-danger btn-sm" data-del="${esc(r.id)}">Delete</button>
+        </td></tr>`).join("")}</tbody></table></div>`
+      : `<div class="empty"><p>Abhi kuch add nahi kiya gaya.</p>
+           <button class="btn btn-sm" id="addNew2">+ Add ${esc(S.title.replace(/s$/, ""))}</button></div>`}
+  </div>`;
+
+  const open = row => openForm(key, row);
+  $("#addNew").addEventListener("click", () => open(null));
+  $("#addNew2")?.addEventListener("click", () => open(null));
+  $$("[data-edit]").forEach(b => b.addEventListener("click", () => open(rows.find(r => r.id === b.dataset.edit))));
+  $$("[data-del]").forEach(b => b.addEventListener("click", async () => {
+    if (!confirm("Pakka delete karna hai?")) return;
+    const { error } = await sb.from(S.table).delete().eq("id", b.dataset.del);
+    if (error) return toast(error.message, true);
+    toast("Deleted"); viewCrud(key);
+  }));
+}
+
+function cell(r, c) {
+  const v = r[c.key];
+  if (c.type === "img")   return v ? `<img src="${esc(v)}" alt="">` : `<div style="width:46px;height:46px;border:1px solid var(--line);border-radius:3px"></div>`;
+  if (c.type === "bool")  return `<span class="tag ${v ? "on" : "off"}">${v ? "Yes" : "No"}</span>`;
+  if (c.type === "money") return v ? money(v) : "—";
+  return esc(v ?? "—");
+}
+
+/* ---------------------------------------------------- form modal */
+async function openForm(key, row) {
+  const S = SECTIONS[key];
+  const isNew = !row;
+  const val = f => row ? (row[f.key] ?? "") : (f.def ?? "");
+
+  // async options
+  for (const f of S.fields) if (f.optionsFn && !f._opts) f._opts = await f.optionsFn();
+
+  // existing gallery
+  let gallery = [];
+  if (!isNew && S.fields.some(f => f.type === "gallery")) {
+    const { data } = await sb.from("perfume_product_images").select("*").eq("product_id", row.id).order("sort_order");
+    gallery = (data || []).map(g => ({ id: g.id, url: g.image_url }));
+  }
+
+  const html = S.fields.map(f => {
+    const id = "f_" + f.key;
+    const wrap = inner => `<div class="field" ${f.half ? 'data-half="1"' : ""}>${inner}</div>`;
+    const lbl = `<label>${esc(f.label)}${f.req ? " *" : ""}</label>`;
+    const hint = f.hint ? `<small>${esc(f.hint)}</small>` : "";
+
+    if (f.type === "check")
+      return `<div class="check"><input type="checkbox" id="${id}" ${(row ? row[f.key] : f.def) ? "checked" : ""}>
+              <label for="${id}" style="margin:0;letter-spacing:0;text-transform:none;font-size:.9rem;color:var(--ivory)">${esc(f.label)}</label></div>`;
+    if (f.type === "textarea")
+      return wrap(`${lbl}<textarea id="${id}">${esc(val(f))}</textarea>${hint}`);
+    if (f.type === "select") {
+      const opts = f.options || f._opts || [];
+      return wrap(`${lbl}<select id="${id}"><option value="">— none —</option>${
+        opts.map(o => `<option value="${esc(o.value)}" ${String(val(f)) === String(o.value) ? "selected" : ""}>${esc(o.label)}</option>`).join("")
+      }</select>${hint}`);
+    }
+    if (f.type === "image")
+      return wrap(`${lbl}
+        <div class="up" data-up="${esc(f.key)}">
+          <button type="button" class="btn btn-ghost btn-sm" data-pick="${esc(f.key)}">Choose image</button>
+          <input type="file" accept="image/*" id="file_${esc(f.key)}">
+          <div class="prev" id="prev_${esc(f.key)}">${val(f) ? imgChip(val(f), f.key) : ""}</div>
+        </div>
+        <input type="hidden" id="${id}" value="${esc(val(f))}">${hint}`);
+    if (f.type === "gallery")
+      return wrap(`${lbl}
+        <div class="up">
+          <button type="button" class="btn btn-ghost btn-sm" data-pick="gallery">Add images</button>
+          <input type="file" accept="image/*" multiple id="file_gallery">
+          <div class="prev" id="prev_gallery">${gallery.map(g => imgChip(g.url, "gallery", g.id)).join("")}</div>
+        </div>${hint}`);
+    return wrap(`${lbl}<input id="${id}" type="${f.type === "number" ? "number" : "text"}"
+        step="any" value="${esc(val(f))}">${hint}`);
+  }).join("");
+
+  openModal(`${isNew ? "Add" : "Edit"} ${esc(S.title.replace(/s$/, ""))}`, `<div id="formGrid">${html}</div>`, [
+    { label: "Cancel", cls: "btn-ghost", fn: closeModal },
+    { label: isNew ? "Create" : "Save changes", fn: () => saveForm(key, row, gallery) }
+  ]);
+
+  // pair up "half" fields into rows
+  const grid = $("#formGrid");
+  let buf = [];
+  [...grid.children].forEach(el => {
+    if (el.dataset && el.dataset.half) buf.push(el);
+    else buf = [];
+    if (buf.length === 2) {
+      const wrapDiv = document.createElement("div"); wrapDiv.className = "row";
+      buf[0].before(wrapDiv); wrapDiv.append(buf[0], buf[1]); buf = [];
+    }
+  });
+
+  bindUploaders(key, gallery);
+}
+
+const imgChip = (url, key, id = "") =>
+  `<figure data-url="${esc(url)}" data-id="${esc(id)}"><img src="${esc(url)}" alt="">
+   <button type="button" data-rm="${esc(key)}">×</button></figure>`;
+
+function bindUploaders(key, gallery) {
+  const S = SECTIONS[key], bucket = S.bucket || "perfume-brand";
+
+  $$("[data-pick]").forEach(b => b.addEventListener("click", () => $("#file_" + b.dataset.pick).click()));
+
+  S.fields.filter(f => f.type === "image").forEach(f => {
+    const input = $("#file_" + f.key);
+    input?.addEventListener("change", async () => {
+      const file = input.files[0]; if (!file) return;
+      toast("Uploading…");
+      try {
+        const url = await uploadFile(bucket, file);
+        $("#f_" + f.key).value = url;
+        $("#prev_" + f.key).innerHTML = imgChip(url, f.key);
+        bindRemovers(gallery);
+        toast("Image uploaded");
+      } catch (e) { toast(e.message || "Upload failed", true); }
+      input.value = "";
+    });
+  });
+
+  const g = $("#file_gallery");
+  g?.addEventListener("change", async () => {
+    const files = [...g.files]; if (!files.length) return;
+    toast(`Uploading ${files.length} image(s)…`);
+    for (const file of files) {
+      try {
+        const url = await uploadFile(bucket, file);
+        gallery.push({ id: "", url });
+        $("#prev_gallery").insertAdjacentHTML("beforeend", imgChip(url, "gallery"));
+      } catch (e) { toast(e.message || "Upload failed", true); }
+    }
+    bindRemovers(gallery); g.value = ""; toast("Gallery updated");
+  });
+
+  bindRemovers(gallery);
+}
+
+function bindRemovers(gallery) {
+  $$("[data-rm]").forEach(b => b.onclick = async () => {
+    const fig = b.closest("figure"), k = b.dataset.rm;
+    if (k === "gallery") {
+      const id = fig.dataset.id;
+      if (id) await sb.from("perfume_product_images").delete().eq("id", id);
+      const i = gallery.findIndex(x => x.url === fig.dataset.url);
+      if (i > -1) gallery.splice(i, 1);
+    } else {
+      $("#f_" + k).value = "";
+    }
+    fig.remove();
+  });
+}
+
+async function saveForm(key, row, gallery) {
+  const S = SECTIONS[key];
+  const payload = {};
+  for (const f of S.fields) {
+    if (f.type === "gallery") continue;
+    const el = $("#f_" + f.key);
+    if (!el && f.type !== "check") continue;
+    let v;
+    if (f.type === "check") v = $("#f_" + f.key).checked;
+    else v = el.value.trim();
+    if (f.req && (v === "" || v === null)) return toast(`"${f.label}" zaroori hai.`, true);
+    if (f.type === "number") v = v === "" ? null : Number(v);
+    if (v === "") v = null;
+    payload[f.key] = v;
+  }
+  if ("slug" in payload && !payload.slug) payload.slug = slugify(payload.name || payload.title || Date.now());
+
+  try {
+    let id = row?.id;
+    if (row) {
+      const { error } = await sb.from(S.table).update(payload).eq("id", row.id);
+      if (error) throw error;
+    } else {
+      const { data, error } = await sb.from(S.table).insert(payload).select().single();
+      if (error) throw error;
+      id = data.id;
+    }
+    // gallery rows
+    if (gallery && S.fields.some(f => f.type === "gallery")) {
+      const fresh = gallery.filter(g => !g.id);
+      if (fresh.length) {
+        await sb.from("perfume_product_images").insert(
+          fresh.map((g, i) => ({ product_id: id, image_url: g.url, sort_order: i })));
+      }
+    }
+    closeModal(); toast("Saved — website par update ho gaya"); viewCrud(key);
+  } catch (e) { toast(e.message || "Save failed", true); }
+}
+
+/* ----------------------------------------------------- settings */
+const SETTINGS_FIELDS = [
+  ["Brand", [
+    ["brand_name", "Brand name", "text"], ["tagline", "Tagline", "text"],
+    ["logo_url", "Logo", "image"], ["about_image_url", "Story image", "image"],
+    ["about_short", "Short intro (footer + home)", "textarea"],
+    ["about_long", "Long story (about page)", "textarea"]
+  ]],
+  ["Announcement bar", [
+    ["announcement", "Announcement text", "text"],
+    ["announcement_on", "Announcement bar show karein", "check"]
+  ]],
+  ["Contact & WhatsApp", [
+    ["whatsapp_number", "WhatsApp number", "text", "Country code ke sath, bina + ke. Misal: 923001234567"],
+    ["whatsapp_message", "Default WhatsApp message", "textarea"],
+    ["phone", "Phone", "text"], ["email", "Email", "text"], ["address", "Address", "text"]
+  ]],
+  ["Social links", [
+    ["facebook_url", "Facebook URL", "text"], ["instagram_url", "Instagram URL", "text"],
+    ["tiktok_url", "TikTok URL", "text"], ["youtube_url", "YouTube URL", "text"]
+  ]],
+  ["Orders & shipping", [
+    ["currency", "Currency symbol", "text"],
+    ["shipping_fee", "Shipping fee", "number"],
+    ["free_shipping_over", "Free shipping above", "number"],
+    ["cod_note", "Cash on Delivery note", "text"]
+  ]],
+  ["Footer", [["footer_note", "Footer copyright line", "text"]]]
+];
+
+async function viewSettings() {
+  $("#view").innerHTML = `<div class="card">Loading…</div>`;
+  const { data } = await sb.from("perfume_settings").select("*").eq("id", 1).maybeSingle();
+  const st = data || {};
+
+  $("#view").innerHTML = SETTINGS_FIELDS.map(([group, fields]) => `
+    <div class="card">
+      <h3 style="margin-bottom:18px">${esc(group)}</h3>
+      ${fields.map(([k, label, type, hint]) => {
+        const id = "f_" + k, v = st[k] ?? "";
+        if (type === "check")
+          return `<div class="check"><input type="checkbox" id="${id}" ${st[k] ? "checked" : ""}>
+            <label for="${id}" style="margin:0;letter-spacing:0;text-transform:none;font-size:.9rem;color:var(--ivory)">${esc(label)}</label></div>`;
+        if (type === "textarea")
+          return `<div class="field"><label>${esc(label)}</label><textarea id="${id}">${esc(v)}</textarea></div>`;
+        if (type === "image")
+          return `<div class="field"><label>${esc(label)}</label>
+            <div class="up"><button type="button" class="btn btn-ghost btn-sm" data-pick="${esc(k)}">Choose image</button>
+              <input type="file" accept="image/*" id="file_${esc(k)}">
+              <div class="prev" id="prev_${esc(k)}">${v ? imgChip(v, k) : ""}</div></div>
+            <input type="hidden" id="${id}" value="${esc(v)}"></div>`;
+        return `<div class="field"><label>${esc(label)}</label>
+          <input id="${id}" type="${type === "number" ? "number" : "text"}" step="any" value="${esc(v)}">
+          ${hint ? `<small>${esc(hint)}</small>` : ""}</div>`;
+      }).join("")}
+    </div>`).join("") +
+    `<button class="btn" id="saveSettings">Save settings</button>`;
+
+  // image uploads
+  SETTINGS_FIELDS.flatMap(([, f]) => f).filter(([, , t]) => t === "image").forEach(([k]) => {
+    $(`[data-pick="${k}"]`)?.addEventListener("click", () => $("#file_" + k).click());
+    $("#file_" + k)?.addEventListener("change", async e => {
+      const file = e.target.files[0]; if (!file) return;
+      toast("Uploading…");
+      try {
+        const url = await uploadFile("perfume-brand", file);
+        $("#f_" + k).value = url;
+        $("#prev_" + k).innerHTML = imgChip(url, k);
+        bindRemovers([]);
+        toast("Image uploaded");
+      } catch (err) { toast(err.message || "Upload failed", true); }
+    });
+  });
+  bindRemovers([]);
+
+  $("#saveSettings").addEventListener("click", async () => {
+    const payload = { id: 1, updated_at: new Date().toISOString() };
+    SETTINGS_FIELDS.flatMap(([, f]) => f).forEach(([k, , type]) => {
+      const el = $("#f_" + k); if (!el) return;
+      payload[k] = type === "check" ? el.checked
+        : type === "number" ? (el.value === "" ? null : Number(el.value))
+        : (el.value.trim() || null);
+    });
+    const { error } = await sb.from("perfume_settings").upsert(payload);
+    if (error) return toast(error.message, true);
+    toast("Settings saved — website update ho gayi");
+  });
+}
+
+/* -------------------------------------------------------- modal */
+function openModal(title, body, actions = []) {
+  $("#modalBox").innerHTML = `
+    <div class="modal-head"><h3>${title}</h3>
+      <button class="btn btn-ghost btn-sm" id="mClose">Close</button></div>
+    <div>${body}</div>
+    <div class="modal-foot">${actions.map((a, i) =>
+      `<button class="btn ${a.cls || ""}" data-act="${i}">${esc(a.label)}</button>`).join("")}</div>`;
+  $("#modal").classList.add("open");
+  document.body.style.overflow = "hidden";
+  $("#mClose").addEventListener("click", closeModal);
+  $$("[data-act]").forEach(b => b.addEventListener("click", () => actions[+b.dataset.act].fn()));
+}
+function closeModal() {
+  $("#modal").classList.remove("open");
+  $("#modalBox").innerHTML = "";
+  document.body.style.overflow = "";
+}
+
+/* ------------------------------------------------------ startup */
+$("#lgBtn").addEventListener("click", signIn);
+$("#lgPass").addEventListener("keydown", e => { if (e.key === "Enter") signIn(); });
+$("#logout").addEventListener("click", async () => { await sb.auth.signOut(); showLogin(); });
+const side = $("#side"), sideScrim = $("#sideScrim");
+const toggleSide = on => { side.classList.toggle("open", on); sideScrim.classList.toggle("on", on); };
+$("#hamb").addEventListener("click", () => toggleSide(!side.classList.contains("open")));
+sideScrim.addEventListener("click", () => toggleSide(false));
+$("#modal").addEventListener("click", e => { if (e.target.id === "modal") closeModal(); });
+addEventListener("keydown", e => { if (e.key === "Escape") closeModal(); });
+
+boot();
+
+})();
+
+</script>
+</body>
+</html>
