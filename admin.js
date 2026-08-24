@@ -82,6 +82,7 @@ async function signIn(){
     return;
   }
 
+  if(btn.disabled) return;   // a sign-in is already running
   btn.disabled = true;
   btn.textContent = 'Signing in…';
 
@@ -206,6 +207,18 @@ function enterApp(){
   bootApp();
 }
 
+/* Keep the panel in step with the session: signing out in another tab
+   (or a token expiring) drops us back to the login screen. */
+supabase.auth.onAuthStateChange((event) => {
+  if(event === 'SIGNED_OUT'){
+    if(realtimeChannel){
+      supabase.removeChannel(realtimeChannel);
+      realtimeChannel = null;
+    }
+    appStarted = false;
+  }
+});
+
 /* ---------- 3. DATA ---------- */
 async function fetchAll(){
   const [ordersRes, reviewsRes, settingsRes] = await Promise.all([
@@ -245,9 +258,18 @@ function paintBadges(){
   br.dataset.zero = unapproved === 0 ? '1' : '0';
 }
 
+let realtimeChannel = null;
+
 function initRealtime(){
-  supabase
-    .channel('perfumeswebsite-admin')
+  /* A channel can only take listeners before subscribe(), so tear down
+     any previous one instead of adding to it. */
+  if(realtimeChannel){
+    supabase.removeChannel(realtimeChannel);
+    realtimeChannel = null;
+  }
+
+  realtimeChannel = supabase
+    .channel('perfumeswebsite-admin-' + Date.now())
     .on('postgres_changes',
       { event: '*', schema: 'public', table: 'perfumeswebsite_orders' },
       async payload => {
@@ -1163,7 +1185,12 @@ async function saveSettings(patch){
 }
 
 /* ---------- 12. BOOT ---------- */
+let appStarted = false;
+
 async function bootApp(){
+  if(appStarted) return;          // Enter and click can both fire sign-in
+  appStarted = true;
+
   await loadSettings();
   await fetchAll();
   go('dashboard');
