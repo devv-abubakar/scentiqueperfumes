@@ -15,7 +15,7 @@
    ============================================================ */
 
 import {
-  supabase, ADMIN_EMAIL, STORE, loadSettings,
+  supabase, STORE, loadSettings,
   money, esc, waLink, normalisePhone
 } from './supabase.js';
 
@@ -60,84 +60,58 @@ async function logActivity(entity, entityId, action, detail){
   }catch(e){ /* the log is a convenience, never a blocker */ }
 }
 
-/* ---------- 2. AUTH ---------- */
-/* Supabase returns the same "Invalid login credentials" for a wrong
-   password, a missing user and an unconfirmed email, so we test the
-   connection first and spell out what actually went wrong. */
+/* ---------- 2. AUTH ----------
+   Simple mode: the username and password are checked here in the
+   browser. There is no Supabase Auth user involved.
+
+   ⚠ This is a gate, not a lock. Both values below are readable by
+   anyone who opens this file in developer tools, and the database
+   policies (setup-simple-login.sql) let the public key read orders.
+   Change ADMIN_USER / ADMIN_PASS here whenever you like.
+------------------------------------ */
+const ADMIN_USER = 'abubakar';
+const ADMIN_PASS = '@bubakar';
+const SESSION_KEY = 'scentique.admin';
+
+function isSignedIn(){
+  try{ return sessionStorage.getItem(SESSION_KEY) === 'yes'; }
+  catch(e){ return false; }
+}
+
 async function signIn(){
   const user = $('#liUser').value.trim().toLowerCase();
   const pass = $('#liPass').value;
-  const err  = $('#loginError');
   const btn  = $('#loginBtn');
 
-  err.hidden = true;
-  err.innerHTML = '';
+  $('#loginError').hidden = true;
 
-  if(user !== 'abubakar'){
-    showLoginError('Unknown username. It should be <b>abubakar</b>.');
-    return;
-  }
-  if(!pass){
-    showLoginError('Enter the password.');
+  if(user !== ADMIN_USER || pass !== ADMIN_PASS){
+    showLoginError('Wrong username or password.');
+    $('#liPass').value = '';
+    $('#liPass').focus();
     return;
   }
 
-  if(btn.disabled) return;   // a sign-in is already running
+  if(btn.disabled) return;
   btn.disabled = true;
   btn.textContent = 'Signing in…';
 
-  /* 1. Can we reach the project at all? */
-  const reachable = await testConnection();
-  if(!reachable.ok){
-    btn.disabled = false;
-    btn.textContent = 'Sign In';
-    showLoginError(`Cannot reach Supabase — ${esc(reachable.message)}<br><br>
-      Check that <b>setup.sql</b> has been run and that the URL and key in
-      <b>supabase.js</b> match your project.`);
-    return;
-  }
-
-  /* 2. Try the actual sign-in. */
-  const { data, error } = await supabase.auth.signInWithPassword({
-    email: ADMIN_EMAIL,
-    password: pass
-  });
+  /* Confirm the database is actually reachable before showing an
+     empty dashboard and leaving you guessing. */
+  const check = await testConnection();
 
   btn.disabled = false;
   btn.textContent = 'Sign In';
 
-  if(!error && data?.session){
-    enterApp();
+  if(!check.ok){
+    showLoginError(`Signed in, but the database is unreachable — ${esc(check.message)}<br><br>
+      Run <b>setup.sql</b> and then <b>setup-simple-login.sql</b> in the
+      Supabase SQL editor, and check the URL and key in <b>supabase.js</b>.`);
     return;
   }
 
-  console.error('Sign-in failed:', error);
-  const msg = (error?.message || '').toLowerCase();
-
-  if(msg.includes('email logins are disabled') || msg.includes('provider is not enabled')){
-    showLoginError(`Email sign-in is switched off for this project.<br><br>
-      Supabase → <b>Authentication → Sign In / Providers → Email</b> → turn it on.`);
-
-  }else if(msg.includes('not confirmed')){
-    showLoginError(`The account exists but its email is not confirmed.<br><br>
-      Supabase → <b>Authentication → Users</b> → open
-      <b>${esc(ADMIN_EMAIL)}</b> → confirm the email
-      (or delete the user and add it again with
-      <b>Auto Confirm User</b> ticked).`);
-
-  }else if(msg.includes('invalid login credentials')){
-    showLoginError(`Either the password is wrong, or the admin account was never created.<br><br>
-      Expected email: <b>${esc(ADMIN_EMAIL)}</b><br>
-      Expected password: <b>@bubakar</b><br><br>
-      In Supabase → <b>Authentication → Users</b>, check that this exact
-      email exists and is confirmed.
-      <button class="a-mini" id="makeAdmin" style="margin:12px 0 0">Create this account now</button>`);
-
-    $('#makeAdmin')?.addEventListener('click', createAdmin);
-
-  }else{
-    showLoginError(`Sign-in failed — ${esc(error?.message || 'unknown error')}`);
-  }
+  try{ sessionStorage.setItem(SESSION_KEY, 'yes'); }catch(e){}
+  enterApp();
 }
 
 function showLoginError(html){
@@ -146,8 +120,8 @@ function showLoginError(html){
   err.hidden = false;
 }
 
-/* A read that anon is always allowed to do, so a failure here means
-   the project, key or schema is the problem — not the password. */
+/* A read anon is allowed to do, so a failure means the project, key
+   or schema is wrong — not the password. */
 async function testConnection(){
   try{
     const { error } = await supabase
@@ -156,8 +130,11 @@ async function testConnection(){
       .limit(1);
 
     if(error){
-      if(error.message.includes('does not exist') || error.code === '42P01'){
+      if(error.code === '42P01' || error.message.includes('does not exist')){
         return { ok: false, message: 'the perfumeswebsite_ tables are missing (run setup.sql)' };
+      }
+      if(error.code === '42501' || error.message.toLowerCase().includes('policy')){
+        return { ok: false, message: 'blocked by row level security (run setup-simple-login.sql)' };
       }
       return { ok: false, message: error.message };
     }
@@ -167,37 +144,8 @@ async function testConnection(){
   }
 }
 
-/* Creates the admin user from the browser. Works only while Supabase
-   allows sign-ups; otherwise add the user in the dashboard instead. */
-async function createAdmin(){
-  showLoginError('Creating the admin account…');
-
-  const { data, error } = await supabase.auth.signUp({
-    email: ADMIN_EMAIL,
-    password: '@bubakar'
-  });
-
-  if(error){
-    showLoginError(`Could not create the account — ${esc(error.message)}<br><br>
-      Add it manually instead: Supabase → <b>Authentication → Users → Add user</b>,
-      email <b>${esc(ADMIN_EMAIL)}</b>, password <b>@bubakar</b>,
-      with <b>Auto Confirm User</b> ticked.`);
-    return;
-  }
-
-  if(data.session){
-    enterApp();
-    return;
-  }
-
-  showLoginError(`Account created, but Supabase is waiting on email confirmation.<br><br>
-    Go to <b>Authentication → Users</b>, open <b>${esc(ADMIN_EMAIL)}</b> and confirm it,
-    then sign in again. To skip this in future, turn off
-    <b>Confirm email</b> under Authentication → Sign In / Providers → Email.`);
-}
-
-async function signOut(){
-  await supabase.auth.signOut();
+function signOut(){
+  try{ sessionStorage.removeItem(SESSION_KEY); }catch(e){}
   location.reload();
 }
 
@@ -206,18 +154,6 @@ function enterApp(){
   $('#appView').hidden = false;
   bootApp();
 }
-
-/* Keep the panel in step with the session: signing out in another tab
-   (or a token expiring) drops us back to the login screen. */
-supabase.auth.onAuthStateChange((event) => {
-  if(event === 'SIGNED_OUT'){
-    if(realtimeChannel){
-      supabase.removeChannel(realtimeChannel);
-      realtimeChannel = null;
-    }
-    appStarted = false;
-  }
-});
 
 /* ---------- 3. DATA ---------- */
 async function fetchAll(){
@@ -1144,7 +1080,7 @@ function renderSettings(host){
         <button class="a-btn a-btn-primary a-btn-block" id="saveShipping">Save</button>
 
         <div class="a-card-head" style="margin-top:32px"><h2>Session</h2></div>
-        <p class="a-field-hint" style="margin-bottom:14px">Signed in as abubakar. Password changes are made in the Supabase dashboard under Authentication → Users.</p>
+        <p class="a-field-hint" style="margin-bottom:14px">Signed in as abubakar. To change the username or password, edit ADMIN_USER and ADMIN_PASS at the top of admin.js.</p>
         <button class="a-btn a-btn-ghost a-btn-block" id="signOutBtn2">Sign out</button>
       </div>
     </div>`;
@@ -1204,7 +1140,7 @@ async function bootApp(){
   });
 }
 
-document.addEventListener('DOMContentLoaded', async () => {
+document.addEventListener('DOMContentLoaded', () => {
   $('#loginBtn').addEventListener('click', signIn);
   $('#liPass').addEventListener('keydown', e => { if(e.key === 'Enter') signIn(); });
   $('#liUser').addEventListener('keydown', e => { if(e.key === 'Enter') $('#liPass').focus(); });
@@ -1223,7 +1159,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   $('#aScrim').addEventListener('click', closeDrawer);
   document.addEventListener('keydown', e => { if(e.key === 'Escape') closeDrawer(); });
 
-  /* already signed in? skip the login screen */
-  const { data } = await supabase.auth.getSession();
-  if(data.session) enterApp();
+  /* already signed in this tab? skip the login screen */
+  if(isSignedIn()) enterApp();
+  else $('#liUser').focus();
 });
