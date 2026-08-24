@@ -61,6 +61,9 @@ async function logActivity(entity, entityId, action, detail){
 }
 
 /* ---------- 2. AUTH ---------- */
+/* Supabase returns the same "Invalid login credentials" for a wrong
+   password, a missing user and an unconfirmed email, so we test the
+   connection first and spell out what actually went wrong. */
 async function signIn(){
   const user = $('#liUser').value.trim().toLowerCase();
   const pass = $('#liPass').value;
@@ -68,17 +71,33 @@ async function signIn(){
   const btn  = $('#loginBtn');
 
   err.hidden = true;
+  err.innerHTML = '';
 
   if(user !== 'abubakar'){
-    err.textContent = 'Unknown username.';
-    err.hidden = false;
+    showLoginError('Unknown username. It should be <b>abubakar</b>.');
+    return;
+  }
+  if(!pass){
+    showLoginError('Enter the password.');
     return;
   }
 
   btn.disabled = true;
   btn.textContent = 'Signing in…';
 
-  const { error } = await supabase.auth.signInWithPassword({
+  /* 1. Can we reach the project at all? */
+  const reachable = await testConnection();
+  if(!reachable.ok){
+    btn.disabled = false;
+    btn.textContent = 'Sign In';
+    showLoginError(`Cannot reach Supabase — ${esc(reachable.message)}<br><br>
+      Check that <b>setup.sql</b> has been run and that the URL and key in
+      <b>supabase.js</b> match your project.`);
+    return;
+  }
+
+  /* 2. Try the actual sign-in. */
+  const { data, error } = await supabase.auth.signInWithPassword({
     email: ADMIN_EMAIL,
     password: pass
   });
@@ -86,15 +105,94 @@ async function signIn(){
   btn.disabled = false;
   btn.textContent = 'Sign In';
 
-  if(error){
-    err.textContent = error.message.includes('Invalid')
-      ? 'Wrong password.'
-      : `Sign-in failed: ${error.message}`;
-    err.hidden = false;
+  if(!error && data?.session){
+    enterApp();
     return;
   }
 
-  enterApp();
+  console.error('Sign-in failed:', error);
+  const msg = (error?.message || '').toLowerCase();
+
+  if(msg.includes('email logins are disabled') || msg.includes('provider is not enabled')){
+    showLoginError(`Email sign-in is switched off for this project.<br><br>
+      Supabase → <b>Authentication → Sign In / Providers → Email</b> → turn it on.`);
+
+  }else if(msg.includes('not confirmed')){
+    showLoginError(`The account exists but its email is not confirmed.<br><br>
+      Supabase → <b>Authentication → Users</b> → open
+      <b>${esc(ADMIN_EMAIL)}</b> → confirm the email
+      (or delete the user and add it again with
+      <b>Auto Confirm User</b> ticked).`);
+
+  }else if(msg.includes('invalid login credentials')){
+    showLoginError(`Either the password is wrong, or the admin account was never created.<br><br>
+      Expected email: <b>${esc(ADMIN_EMAIL)}</b><br>
+      Expected password: <b>@bubakar</b><br><br>
+      In Supabase → <b>Authentication → Users</b>, check that this exact
+      email exists and is confirmed.
+      <button class="a-mini" id="makeAdmin" style="margin:12px 0 0">Create this account now</button>`);
+
+    $('#makeAdmin')?.addEventListener('click', createAdmin);
+
+  }else{
+    showLoginError(`Sign-in failed — ${esc(error?.message || 'unknown error')}`);
+  }
+}
+
+function showLoginError(html){
+  const err = $('#loginError');
+  err.innerHTML = html;
+  err.hidden = false;
+}
+
+/* A read that anon is always allowed to do, so a failure here means
+   the project, key or schema is the problem — not the password. */
+async function testConnection(){
+  try{
+    const { error } = await supabase
+      .from('perfumeswebsite_settings')
+      .select('key')
+      .limit(1);
+
+    if(error){
+      if(error.message.includes('does not exist') || error.code === '42P01'){
+        return { ok: false, message: 'the perfumeswebsite_ tables are missing (run setup.sql)' };
+      }
+      return { ok: false, message: error.message };
+    }
+    return { ok: true };
+  }catch(e){
+    return { ok: false, message: e.message || 'network error' };
+  }
+}
+
+/* Creates the admin user from the browser. Works only while Supabase
+   allows sign-ups; otherwise add the user in the dashboard instead. */
+async function createAdmin(){
+  showLoginError('Creating the admin account…');
+
+  const { data, error } = await supabase.auth.signUp({
+    email: ADMIN_EMAIL,
+    password: '@bubakar'
+  });
+
+  if(error){
+    showLoginError(`Could not create the account — ${esc(error.message)}<br><br>
+      Add it manually instead: Supabase → <b>Authentication → Users → Add user</b>,
+      email <b>${esc(ADMIN_EMAIL)}</b>, password <b>@bubakar</b>,
+      with <b>Auto Confirm User</b> ticked.`);
+    return;
+  }
+
+  if(data.session){
+    enterApp();
+    return;
+  }
+
+  showLoginError(`Account created, but Supabase is waiting on email confirmation.<br><br>
+    Go to <b>Authentication → Users</b>, open <b>${esc(ADMIN_EMAIL)}</b> and confirm it,
+    then sign in again. To skip this in future, turn off
+    <b>Confirm email</b> under Authentication → Sign In / Providers → Email.`);
 }
 
 async function signOut(){
