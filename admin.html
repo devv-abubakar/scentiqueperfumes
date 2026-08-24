@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<title>Scentique — Admin</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&family=Playfair+Display:wght@400;500&display=swap" rel="stylesheet">
+
+<link rel="stylesheet" href="admin.css">
+</head>
+<body class="admin">
+
+<!-- ============================================================
+     LOGIN
+     ============================================================ -->
+<section class="login" id="loginView">
+  <div class="login-card">
+    <p class="a-eyebrow">Scentique</p>
+    <h1 class="login-title">Admin Panel</h1>
+    <p class="login-lead">Sign in to manage orders, reviews and store settings.</p>
+
+    <div class="a-field">
+      <label for="liUser">Username</label>
+      <input id="liUser" type="text" autocomplete="username" placeholder="abubakar">
+    </div>
+
+    <div class="a-field">
+      <label for="liPass">Password</label>
+      <input id="liPass" type="password" autocomplete="current-password" placeholder="••••••••">
+    </div>
+
+    <p class="login-error" id="loginError" hidden></p>
+    <button class="a-btn a-btn-primary a-btn-block" id="loginBtn">Sign In</button>
+
+    <a class="login-back" href="index.html">← Back to the shop</a>
+  </div>
+</section>
+
+<!-- ============================================================
+     DASHBOARD SHELL
+     ============================================================ -->
+<div class="shell" id="appView" hidden>
+
+  <!-- Sidebar -->
+  <aside class="side" id="side">
+    <div class="side-brand">
+      <span class="side-logo">SCENTIQUE</span>
+      <span class="side-sub">Admin</span>
+    </div>
+
+    <nav class="side-nav">
+      <button class="side-link is-active" data-view="dashboard">
+        <span class="side-ico">▤</span> Dashboard
+      </button>
+      <button class="side-link" data-view="orders">
+        <span class="side-ico">✦</span> Orders
+        <span class="side-badge" id="badgePending">0</span>
+      </button>
+      <button class="side-link" data-view="reviews">
+        <span class="side-ico">★</span> Reviews
+        <span class="side-badge" id="badgeReviews">0</span>
+      </button>
+      <button class="side-link" data-view="trash">
+        <span class="side-ico">⌫</span> Trash
+      </button>
+      <button class="side-link" data-view="settings">
+        <span class="side-ico">⚙</span> Settings
+      </button>
+    </nav>
+
+    <div class="side-foot">
+      <a href="index.html" target="_blank" rel="noopener">View shop ↗</a>
+      <button id="logoutBtn">Sign out</button>
+    </div>
+  </aside>
+
+  <!-- Main -->
+  <main class="main">
+    <header class="topbar">
+      <button class="side-toggle" id="sideToggle" aria-label="Toggle menu">☰</button>
+      <h1 class="topbar-title" id="viewTitle">Dashboard</h1>
+      <div class="topbar-right">
+        <span class="live-dot" id="liveDot" title="Live updates">●</span>
+        <button class="a-btn a-btn-ghost" id="refreshBtn">Refresh</button>
+      </div>
+    </header>
+
+    <div class="views" id="views">
+      <!-- rendered by admin.js -->
+      <div class="a-loading">Loading…</div>
+    </div>
+  </main>
+</div>
+
+<!-- Order / review detail drawer -->
+<div class="a-scrim" id="aScrim" hidden></div>
+<aside class="a-drawer" id="aDrawer" aria-hidden="true">
+  <div class="a-drawer-head">
+    <h2 id="aDrawerTitle">Order</h2>
+    <button class="a-drawer-close" id="aDrawerClose" aria-label="Close">&times;</button>
+  </div>
+  <div class="a-drawer-body" id="aDrawerBody"></div>
+</aside>
+
+<div class="a-toast" id="aToast" role="status" aria-live="polite"></div>
+
+<script type="module" src="admin.js"></script>
+</body>
+</html>
