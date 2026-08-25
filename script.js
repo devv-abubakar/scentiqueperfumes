@@ -14,7 +14,7 @@
    ============================================================ */
 
 import {
-  supabase, STORE, loadSettings,
+  supabase, STORE, loadSettings, loadCatalog,
   CATALOG, findProduct,
   money, esc, waLink, orderRef, waIcon
 } from './supabase.js';
@@ -855,8 +855,7 @@ async function boot(){
   });
 
   /* Settings and review counts drive the rest of the render */
-  await loadSettings();
-  await loadReviewStats();
+  await Promise.all([loadSettings(), loadCatalog(), loadReviewStats()]);
 
   renderGrid('#productGrid', CATALOG);
   const product = initPDP();
