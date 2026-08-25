@@ -44,6 +44,10 @@
 *::before,
 *::after{ box-sizing: border-box; }
 
+/* The hidden attribute must win over any display rule below —
+   .announce{display:flex} would otherwise show an empty bar. */
+[hidden]{ display: none !important; }
+
 html{
   scroll-behavior: smooth;
   scroll-padding-top: var(--nav-h);
