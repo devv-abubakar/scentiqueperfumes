@@ -55,9 +55,12 @@ export async function loadSettings(){
 }
 
 /* ---------- Catalog ----------
-   Add a fragrance here and it appears everywhere automatically.
+   These are fallbacks only. The real catalog lives in
+   perfumeswebsite_products and is managed from the admin panel;
+   loadCatalog() replaces the list below at page load. If the
+   database is unreachable, the shop still works off these.
 -------------------------------- */
-export const CATALOG = [
+const DEFAULT_CATALOG = [
   {
     id: 'noir-oud',
     name: 'Noir Oud',
@@ -188,7 +191,51 @@ export const CATALOG = [
   }
 ];
 
+/* Mutated in place by loadCatalog(), so every module that imported
+   CATALOG sees the same up-to-date array. */
+export const CATALOG = [...DEFAULT_CATALOG];
+
 export const findProduct = id => CATALOG.find(p => p.id === id);
+
+/** Turns a database row into the shape the shop expects. */
+export function rowToProduct(r){
+  return {
+    id: r.id,
+    name: r.name,
+    family: r.family || '',
+    price: Number(r.price) || 0,
+    size: r.size || '50 ml',
+    conc: r.conc || 'Eau de Parfum',
+    lasts: r.lasts || '',
+    image: r.image || '',
+    desc: r.description || '',
+    notes: {
+      top: r.note_top || '',
+      heart: r.note_heart || '',
+      base: r.note_base || ''
+    }
+  };
+}
+
+/** Loads the live catalog. Falls back to DEFAULT_CATALOG on any failure. */
+export async function loadCatalog(){
+  try{
+    const { data, error } = await supabase
+      .from('perfumeswebsite_products')
+      .select('*')
+      .is('deleted_at', null)
+      .eq('active', true)
+      .order('sort_order', { ascending: true });
+
+    if(error || !data || data.length === 0) return CATALOG;
+
+    CATALOG.length = 0;
+    data.forEach(r => CATALOG.push(rowToProduct(r)));
+  }catch(e){
+    /* keep the defaults */
+  }
+  return CATALOG;
+}
 
 /* ---------- Shared helpers ---------- */
 export const money = n => 'Rs. ' + Number(n || 0).toLocaleString('en-PK');
