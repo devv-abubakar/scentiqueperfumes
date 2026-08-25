@@ -199,6 +199,12 @@ export const findProduct = id => CATALOG.find(p => p.id === id);
 
 /** Turns a database row into the shape the shop expects. */
 export function rowToProduct(r){
+  /* images[] is the source of truth; fall back to the old single
+     column so older rows keep working. */
+  const images = (Array.isArray(r.images) && r.images.length)
+    ? r.images.filter(Boolean)
+    : (r.image ? [r.image] : []);
+
   return {
     id: r.id,
     name: r.name,
@@ -207,7 +213,8 @@ export function rowToProduct(r){
     size: r.size || '50 ml',
     conc: r.conc || 'Eau de Parfum',
     lasts: r.lasts || '',
-    image: r.image || '',
+    images,
+    image: images[0] || '',
     desc: r.description || '',
     notes: {
       top: r.note_top || '',
@@ -217,7 +224,12 @@ export function rowToProduct(r){
   };
 }
 
-/** Loads the live catalog. Falls back to DEFAULT_CATALOG on any failure. */
+/** Loads the live catalog.
+
+   An empty result means the shop genuinely has no products — the
+   defaults are only used when the database cannot be reached at all.
+   (Falling back on an empty result is why deleted products used to
+   reappear on the site.) */
 export async function loadCatalog(){
   try{
     const { data, error } = await supabase
@@ -227,14 +239,47 @@ export async function loadCatalog(){
       .eq('active', true)
       .order('sort_order', { ascending: true });
 
-    if(error || !data || data.length === 0) return CATALOG;
+    if(error) throw error;
 
     CATALOG.length = 0;
-    data.forEach(r => CATALOG.push(rowToProduct(r)));
+    (data || []).forEach(r => CATALOG.push(rowToProduct(r)));
+    catalogLoaded = true;
   }catch(e){
-    /* keep the defaults */
+    console.warn('Catalog could not be loaded, using built-in list:', e?.message || e);
   }
   return CATALOG;
+}
+
+/* True once the database answered, however many rows it returned. */
+export let catalogLoaded = false;
+
+/* ---------- Image storage ---------- */
+export const IMAGE_BUCKET = 'perfumeswebsite-images';
+
+/** Uploads one file and returns its public URL. */
+export async function uploadImage(file, productId = 'misc'){
+  const ext = (file.name.split('.').pop() || 'jpg').toLowerCase();
+  const safe = String(productId || 'misc').replace(/[^a-z0-9-]/gi, '') || 'misc';
+  const path = `${safe}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+
+  const { error } = await supabase.storage
+    .from(IMAGE_BUCKET)
+    .upload(path, file, { cacheControl: '3600', upsert: false });
+
+  if(error) throw error;
+
+  const { data } = supabase.storage.from(IMAGE_BUCKET).getPublicUrl(path);
+  return data.publicUrl;
+}
+
+/** Removes an uploaded image. Ignores files hosted elsewhere. */
+export async function deleteImage(url){
+  const marker = `/${IMAGE_BUCKET}/`;
+  const at = String(url).indexOf(marker);
+  if(at === -1) return;
+
+  const path = url.slice(at + marker.length).split('?')[0];
+  await supabase.storage.from(IMAGE_BUCKET).remove([decodeURIComponent(path)]);
 }
 
 /* ---------- Shared helpers ---------- */
