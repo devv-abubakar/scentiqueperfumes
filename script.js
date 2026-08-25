@@ -173,35 +173,77 @@ function openWhatsApp(text){
 }
 
 function cartMessage(details){
-  const lines = [`*New order — ${STORE.name}*`, ''];
+  const line = '━━━━━━━━━━━━━━━';
+  const L = [];
 
-  cart.forEach(l => {
+  L.push(`🌸 *${STORE.name.toUpperCase()}*`);
+  L.push('_Small-batch eau de parfum_');
+  L.push(line);
+  L.push('');
+  L.push('*🧾 ORDER DETAILS*');
+  L.push('');
+
+  cart.forEach((l, i) => {
     const p = findProduct(l.id);
-    if(p) lines.push(`• ${p.name} (${p.size}) × ${l.qty} — ${money(p.price * l.qty)}`);
+    if(!p) return;
+    L.push(`*${i + 1}. ${p.name}*`);
+    L.push(`     ${p.family} · ${p.size}`);
+    L.push(`     ${l.qty} × ${money(p.price)}  =  *${money(p.price * l.qty)}*`);
+    L.push('');
   });
 
-  lines.push('');
-  lines.push(`Subtotal: ${money(cartSubtotal())}`);
-  lines.push(`Delivery: ${shippingCost() === 0 ? 'Free' : money(shippingCost())}`);
-  lines.push(`*Total: ${money(cartTotal())}*`);
+  L.push(line);
+  L.push(`Subtotal      ${money(cartSubtotal())}`);
+  L.push(`Delivery      ${shippingCost() === 0 ? 'FREE' : money(shippingCost())}`);
+  L.push(`*TOTAL         ${money(cartTotal())}*`);
+  L.push(line);
 
   if(details){
-    lines.push('', `Order ref: ${details.ref}`);
-    lines.push(`Name: ${details.name}`);
-    lines.push(`Phone: ${details.phone}`);
-    lines.push(`City: ${details.city}`);
-    lines.push(`Address: ${details.address}`);
-    if(details.note) lines.push(`Note: ${details.note}`);
+    L.push('');
+    L.push('*📦 DELIVERY DETAILS*');
+    L.push('');
+    L.push(`Order ref   :  *${details.ref}*`);
+    L.push(`Name        :  ${details.name}`);
+    L.push(`Phone       :  ${details.phone}`);
+    L.push(`City        :  ${details.city}`);
+    L.push(`Address     :  ${details.address}`);
+    if(details.note) L.push(`Note        :  ${details.note}`);
+    L.push('');
+    L.push(line);
   }
-  return lines.join('\n');
+
+  L.push('');
+  L.push('💵 _Payment: Cash on delivery_');
+  L.push('🚚 _Dispatch: 2–4 working days_');
+  L.push('');
+  L.push('Please confirm my order. Thank you!');
+
+  return L.join('\n');
 }
 
 function productMessage(product, qty){
+  const line = '━━━━━━━━━━━━━━━';
   return [
-    `*New order — ${STORE.name}*`, '',
-    `• ${product.name} (${product.size}) × ${qty} — ${money(product.price * qty)}`,
-    '', `Total: ${money(product.price * qty)}`,
-    '', 'Please confirm availability and delivery time.'
+    `🌸 *${STORE.name.toUpperCase()}*`,
+    '_Small-batch eau de parfum_',
+    line,
+    '',
+    '*🧾 ENQUIRY*',
+    '',
+    `*${product.name}*`,
+    `     ${product.family} · ${product.size}`,
+    `     ${qty} × ${money(product.price)}  =  *${money(product.price * qty)}*`,
+    '',
+    line,
+    '',
+    'Notes',
+    `Top     :  ${product.notes.top}`,
+    `Heart   :  ${product.notes.heart}`,
+    `Base    :  ${product.notes.base}`,
+    '',
+    line,
+    '',
+    'Please confirm availability and delivery time.'
   ].join('\n');
 }
 
@@ -692,24 +734,36 @@ function cardMarkup(p, i){
     ? `<span class="card-rating">${stars(Math.round(stat.avg))}<em>${stat.count}</em></span>`
     : '';
 
+  const imgs = p.images && p.images.length ? p.images : [p.image];
+  const alt = imgs.length > 1
+    ? `<span class="card-img is-alt" style="background-image:url('${imgs[1]}')"></span>` : '';
+  const dots = imgs.length > 1
+    ? `<span class="card-count">${imgs.map(() => '<i></i>').join('')}</span>` : '';
+
+  const noteLine = [p.notes.top, p.notes.heart, p.notes.base]
+    .map(n => (n || '').split(',')[0].trim())
+    .filter(Boolean);
+
   return `
     <article class="card reveal" style="--d:${(i % 4) * 90}ms">
       <div class="card-media">
-        <span class="card-img" style="background-image:url('${p.image}')"></span>
+        <span class="card-img" style="background-image:url('${imgs[0] || ''}')"></span>
+        ${alt}
         <span class="card-frame" aria-hidden="true"></span>
-        <span class="card-tag">${p.family}</span>
-        <a class="card-link" href="product.html?id=${p.id}" aria-label="View ${p.name}"></a>
+        <span class="card-tag">${esc(p.family)}</span>
+        ${dots}
+        <a class="card-link" href="product.html?id=${p.id}" aria-label="View ${esc(p.name)}"></a>
         <button class="quick-add" data-add="${p.id}">Quick Add</button>
       </div>
 
       <a class="card-body" href="product.html?id=${p.id}">
         <div class="card-row">
-          <h3 class="card-name">${p.name}</h3>
+          <h3 class="card-name">${esc(p.name)}</h3>
           <span class="card-price">${money(p.price)}</span>
         </div>
-        <p class="card-notes"><em>${p.notes.top.split(',')[0]}</em> · ${p.notes.heart.split(',')[0]} · ${p.notes.base.split(',')[0]}</p>
+        ${noteLine.length ? `<p class="card-notes"><em>${esc(noteLine[0])}</em>${noteLine.slice(1).map(n => ' · ' + esc(n)).join('')}</p>` : ''}
         <div class="card-foot">
-          <span class="card-size">${p.size} · ${p.conc.split('·')[1]?.trim() || p.conc}</span>
+          <span class="card-size">${esc(p.size)}</span>
           ${rating}
         </div>
       </a>
@@ -719,24 +773,127 @@ function cardMarkup(p, i){
 function renderGrid(target, items){
   const grid = $(target);
   if(!grid) return;
+
+  if(items.length === 0){
+    grid.innerHTML = `
+      <div class="catalog-empty">
+        <h3>The collection is being restocked</h3>
+        <p>New fragrances are on their way. Message us and we will tell you the moment they land.</p>
+      </div>`;
+    return;
+  }
+
   grid.innerHTML = items.map(cardMarkup).join('');
   initReveal();
 }
 
 /* ---------- 9. PRODUCT DETAIL PAGE ---------- */
+function buildGallery(product){
+  const host = $('#pdpGallery');
+  if(!host) return;
+
+  const imgs = (product.images && product.images.length) ? product.images : [product.image].filter(Boolean);
+  if(imgs.length === 0){ host.innerHTML = ''; return; }
+
+  const many = imgs.length > 1;
+
+  host.innerHTML = `
+    <div class="gallery">
+      <div class="gallery-track" id="galTrack">
+        ${imgs.map((src, i) => `
+          <div class="gallery-slide" role="img"
+               aria-label="${esc(product.name)} — image ${i + 1} of ${imgs.length}"
+               style="background-image:url('${src}')"></div>`).join('')}
+      </div>
+      ${many ? `
+        <button class="gallery-arrow is-prev" id="galPrev" aria-label="Previous image">‹</button>
+        <button class="gallery-arrow is-next" id="galNext" aria-label="Next image">›</button>
+        <div class="gallery-dots" id="galDots">
+          ${imgs.map((_, i) => `<button data-slide="${i}" aria-label="Go to image ${i + 1}"></button>`).join('')}
+        </div>` : ''}
+    </div>
+
+    ${many ? `
+      <div class="gallery-thumbs" id="galThumbs">
+        ${imgs.map((src, i) => `
+          <button data-slide="${i}" aria-label="Image ${i + 1}"
+                  style="background-image:url('${src}')"></button>`).join('')}
+      </div>` : ''}`;
+
+  if(!many) return;
+
+  const track = $('#galTrack');
+  let index = 0;
+  let timer;
+
+  const paint = () => {
+    $$('#galDots button').forEach((b, i) => b.classList.toggle('is-on', i === index));
+    $$('#galThumbs button').forEach((b, i) => b.classList.toggle('is-on', i === index));
+  };
+
+  const goTo = i => {
+    index = (i + imgs.length) % imgs.length;
+    track.scrollTo({ left: track.clientWidth * index, behavior: 'smooth' });
+    paint();
+  };
+
+  /* Auto-advance every 4.5s; pause while the visitor is interacting. */
+  const start = () => {
+    stop();
+    if(window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    timer = setInterval(() => goTo(index + 1), 4500);
+  };
+  const stop = () => clearInterval(timer);
+
+  $('#galPrev').addEventListener('click', () => { goTo(index - 1); start(); });
+  $('#galNext').addEventListener('click', () => { goTo(index + 1); start(); });
+
+  $$('#galDots button, #galThumbs button').forEach(b =>
+    b.addEventListener('click', () => { goTo(Number(b.dataset.slide)); start(); }));
+
+  /* keep the dots honest when the visitor swipes */
+  let scrollTimer;
+  track.addEventListener('scroll', () => {
+    clearTimeout(scrollTimer);
+    scrollTimer = setTimeout(() => {
+      const at = Math.round(track.scrollLeft / track.clientWidth);
+      if(at !== index){ index = at; paint(); }
+    }, 120);
+  }, { passive: true });
+
+  const gal = host.querySelector('.gallery');
+  gal.addEventListener('mouseenter', stop);
+  gal.addEventListener('mouseleave', start);
+  gal.addEventListener('touchstart', stop, { passive: true });
+
+  paint();
+  start();
+}
+
 function initPDP(){
   if(!$('#pdp')) return null;
 
   const params = new URLSearchParams(location.search);
-  const product = findProduct(params.get('id')) || CATALOG[0];
+  const product = findProduct(params.get('id'));
+
+  /* The product may have been removed from the shop. */
+  if(!product){
+    $('#pdp').innerHTML = `
+      <div class="catalog-empty" style="margin:80px 0">
+        <h3>This fragrance is no longer available</h3>
+        <p>It may have sold out or been retired from the collection.</p>
+        <p style="margin-top:22px"><a class="btn-line" style="max-width:280px;margin:0 auto" href="index.html#collection">Browse the collection</a></p>
+      </div>`;
+    $('#buyBar')?.remove();
+    return null;
+  }
 
   document.title = `${product.name} — SCENTIQUE`;
   $('#crumbName').textContent = product.name;
   $('#pdpFamily').textContent = product.family;
   $('#pdpTitle').textContent  = product.name;
-  $('#pdpPrice').textContent  = money(product.price);
+  $('#pdpPriceValue').textContent = money(product.price);
   $('#pdpDesc').textContent   = product.desc;
-  $('#pdpImage').style.backgroundImage = `url('${product.image}')`;
 
   $('#noteTop').textContent   = product.notes.top;
   $('#noteHeart').textContent = product.notes.heart;
@@ -746,6 +903,18 @@ function initPDP(){
   $('#pdpConc').textContent = product.conc;
   $('#pdpLast').textContent = product.lasts;
   $('#buyBarPrice').textContent = money(product.price);
+
+  buildGallery(product);
+
+  /* star summary, if this fragrance has reviews */
+  const stat = reviewStats[product.id];
+  const ratingEl = $('#pdpRating');
+  if(stat && ratingEl){
+    ratingEl.innerHTML =
+      `${stars(Math.round(stat.avg))} <span>${stat.avg.toFixed(1)} · ${stat.count} review${stat.count === 1 ? '' : 's'}</span>`;
+  }else if(ratingEl){
+    ratingEl.remove();
+  }
 
   let qty = 1;
   const qtyValue = $('#qtyValue');
