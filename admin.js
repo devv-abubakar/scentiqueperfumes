@@ -80,13 +80,25 @@ function isSignedIn(){
 
 async function signIn(){
   const user = $('#liUser').value.trim().toLowerCase();
-  const pass = $('#liPass').value;
+  /* Phone keyboards capitalise the letter after "@" and autocomplete
+     often leaves a trailing space, so trim before comparing. */
+  const pass = $('#liPass').value.trim();
   const btn  = $('#loginBtn');
 
   $('#loginError').hidden = true;
 
-  if(user !== ADMIN_USER || pass !== ADMIN_PASS){
-    showLoginError('Wrong username or password.');
+  if(user !== ADMIN_USER){
+    showLoginError(`Wrong username. It should be <b>${esc(ADMIN_USER)}</b>.`);
+    $('#liUser').focus();
+    return;
+  }
+
+  if(pass !== ADMIN_PASS){
+    /* Case is the usual culprit — say so instead of just "wrong". */
+    const nearMiss = pass.toLowerCase() === ADMIN_PASS.toLowerCase();
+    showLoginError(nearMiss
+      ? 'Almost — the password is all lowercase. Your keyboard may have capitalised a letter.'
+      : 'Wrong password.');
     $('#liPass').value = '';
     $('#liPass').focus();
     return;
