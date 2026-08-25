@@ -48,23 +48,31 @@
      PRODUCT DETAIL
      ============================================================ -->
 <main class="pdp" id="pdp">
+  <a class="pdp-back" href="index.html#collection">← Collection</a>
+
   <nav class="breadcrumbs" aria-label="Breadcrumb">
     <a href="index.html">Home</a><span>/</span>
     <a href="index.html#collection">Collection</a><span>/</span>
-    <span id="crumbName">Fragrance</span>
+    <span class="crumb-current" id="crumbName">Fragrance</span>
   </nav>
 
   <div class="pdp-grid">
-    <!-- LEFT: imagery -->
+    <!-- LEFT: gallery -->
     <div class="pdp-media">
-      <div class="pdp-image" id="pdpImage"></div>
+      <div id="pdpGallery"></div>
     </div>
 
     <!-- RIGHT: details -->
     <div class="pdp-info">
       <p class="eyebrow" id="pdpFamily">Fragrance Family</p>
       <h1 class="pdp-title" id="pdpTitle">Fragrance</h1>
-      <p class="pdp-price" id="pdpPrice">Rs. 0</p>
+
+      <p class="pdp-price">
+        <span id="pdpPriceValue">Rs. 0</span>
+        <small>incl. taxes</small>
+      </p>
+
+      <p class="pdp-rating" id="pdpRating"></p>
 
       <p class="pdp-desc" id="pdpDesc"></p>
 
