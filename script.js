@@ -818,9 +818,12 @@ async function boot(){
 
   $('#checkoutBtn')?.addEventListener('click', () => {
     if(cart.length === 0){ showToast('Add a fragrance first'); return; }
+    if(!STORE.ordersOpen){ showToast('Orders are paused right now'); return; }
     openModal();
   });
 
+  /* WhatsApp still works while orders are paused — the shop can
+     answer questions even when it is not taking new orders. */
   $('#waCartBtn')?.addEventListener('click', () => {
     if(cart.length === 0){ showToast('Add a fragrance first'); return; }
     openWhatsApp(cartMessage(null));
@@ -877,6 +880,12 @@ async function boot(){
     a.href = `mailto:${STORE.email}`;
     a.textContent = STORE.email;
   });
+
+  /* Paused shop: label the checkout button so it is obvious why */
+  if(!STORE.ordersOpen){
+    const co = $('#checkoutBtn');
+    if(co) co.textContent = 'Orders Paused';
+  }
 
   /* Announcement bar */
   const ann = $('#announcement');
