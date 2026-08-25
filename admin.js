@@ -29,6 +29,8 @@ const state = {
   trashed: [],      // soft-deleted orders
   reviews: [],
   trashedReviews: [],
+  products: [],
+  trashedProducts: [],
   settings: {},
   filter: { status: 'all', search: '', source: 'all' }
 };
@@ -169,14 +171,17 @@ function enterApp(){
 
 /* ---------- 3. DATA ---------- */
 async function fetchAll(){
-  const [ordersRes, reviewsRes, settingsRes] = await Promise.all([
+  const [ordersRes, reviewsRes, settingsRes, productsRes] = await Promise.all([
     supabase.from('perfumeswebsite_orders')
       .select('*, perfumeswebsite_order_items(*)')
       .order('created_at', { ascending: false }),
     supabase.from('perfumeswebsite_reviews')
       .select('*')
       .order('created_at', { ascending: false }),
-    supabase.from('perfumeswebsite_settings').select('*')
+    supabase.from('perfumeswebsite_settings').select('*'),
+    supabase.from('perfumeswebsite_products')
+      .select('*')
+      .order('sort_order', { ascending: true })
   ]);
 
   if(ordersRes.error) console.error(ordersRes.error);
@@ -188,6 +193,10 @@ async function fetchAll(){
   const reviews = reviewsRes.data || [];
   state.reviews        = reviews.filter(r => !r.deleted_at);
   state.trashedReviews = reviews.filter(r =>  r.deleted_at);
+
+  const products = productsRes.data || [];
+  state.products        = products.filter(p => !p.deleted_at);
+  state.trashedProducts = products.filter(p =>  p.deleted_at);
 
   state.settings = Object.fromEntries((settingsRes.data || []).map(r => [r.key, r.value]));
 
@@ -230,6 +239,9 @@ function initRealtime(){
     .on('postgres_changes',
       { event: '*', schema: 'public', table: 'perfumeswebsite_reviews' },
       async () => { await fetchAll(); render(); })
+    .on('postgres_changes',
+      { event: '*', schema: 'public', table: 'perfumeswebsite_products' },
+      async () => { await fetchAll(); render(); })
     .subscribe(status => {
       $('#liveDot').classList.toggle('is-off', status !== 'SUBSCRIBED');
     });
@@ -238,6 +250,7 @@ function initRealtime(){
 /* ---------- 4. ROUTER ---------- */
 const TITLES = {
   dashboard: 'Dashboard',
+  products: 'Products',
   orders: 'Orders',
   reviews: 'Reviews',
   trash: 'Trash',
@@ -255,6 +268,7 @@ function go(view){
 function render(){
   const host = $('#views');
   if(state.view === 'dashboard') return renderDashboard(host);
+  if(state.view === 'products')  return renderProducts(host);
   if(state.view === 'orders')    return renderOrders(host);
   if(state.view === 'reviews')   return renderReviews(host);
   if(state.view === 'trash')     return renderTrash(host);
@@ -859,6 +873,292 @@ function openOrder(id){
   $('#dRestore')?.addEventListener('click', () => { restoreOrder(o.id); closeDrawer(); });
 }
 
+/* ---------- 8b. PRODUCTS ---------- */
+const slugify = str => String(str).toLowerCase().trim()
+  .normalize('NFD').replace(/[\u0300-\u036f]/g, '')   // strip accents
+  .replace(/[^a-z0-9]+/g, '-')
+  .replace(/^-+|-+$/g, '')
+  .slice(0, 48);
+
+const BLANK_PRODUCT = {
+  id: '', name: '', family: '', price: 0, size: '50 ml',
+  conc: 'Eau de Parfum · 24%', lasts: '8–10 hours', image: '',
+  description: '', note_top: '', note_heart: '', note_base: '',
+  active: true, sort_order: 100
+};
+
+function renderProducts(host){
+  host.innerHTML = `
+    <div class="table-tools">
+      <input id="pSearch" type="search" placeholder="Search fragrance name or family…">
+      <button class="a-btn a-btn-primary" id="addProduct">+ Add Fragrance</button>
+    </div>
+
+    <div class="a-table-wrap" id="productTable">${productsTable(state.products)}</div>
+
+    <p class="a-field-hint" style="margin-top:14px">
+      Hidden fragrances stay in the database but disappear from the shop.
+      Trashed ones can be restored from the Trash tab.
+    </p>`;
+
+  $('#addProduct').addEventListener('click', () => editProduct(null));
+
+  $('#pSearch').addEventListener('input', e => {
+    const q = e.target.value.toLowerCase();
+    const list = state.products.filter(p =>
+      (p.name + ' ' + p.family).toLowerCase().includes(q));
+    $('#productTable').innerHTML = productsTable(list);
+    wireProductRows();
+  });
+
+  wireProductRows();
+}
+
+function productsTable(list, { trash = false } = {}){
+  if(list.length === 0){
+    return `<p class="a-empty">${trash ? 'No trashed fragrances.' : 'No fragrances yet — add your first one.'}</p>`;
+  }
+
+  return `
+    <table class="a-table">
+      <thead>
+        <tr>
+          <th></th><th>Fragrance</th><th>Family</th>
+          <th class="cell-num">Price</th><th>Status</th>
+          <th class="cell-actions">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${list.map(p => `
+          <tr>
+            <td><span class="prod-thumb" style="background-image:url('${esc(p.image)}')"></span></td>
+            <td>
+              ${esc(p.name)}
+              <div class="cell-muted">${esc(p.size)} · ${esc(p.id)}</div>
+            </td>
+            <td class="cell-muted">${esc(p.family)}</td>
+            <td class="cell-num">${money(p.price)}</td>
+            <td>
+              <span class="tag ${p.active ? 'tag-completed' : 'tag-pending'}">
+                ${p.active ? 'live' : 'hidden'}
+              </span>
+            </td>
+            <td class="cell-actions">
+              ${trash
+                ? `<button class="a-mini is-go" data-restoreprod="${p.id}">Restore</button>
+                   <button class="a-mini is-danger" data-purgeprod="${p.id}">Delete forever</button>`
+                : `<button class="a-mini" data-editprod="${p.id}">Edit</button>
+                   <button class="a-mini" data-toggleprod="${p.id}">${p.active ? 'Hide' : 'Show'}</button>
+                   <button class="a-mini is-danger" data-trashprod="${p.id}">Trash</button>`}
+            </td>
+          </tr>`).join('')}
+      </tbody>
+    </table>`;
+}
+
+function wireProductRows(){
+  $$('[data-editprod]').forEach(b => b.addEventListener('click', () => editProduct(b.dataset.editprod)));
+  $$('[data-toggleprod]').forEach(b => b.addEventListener('click', () => toggleProduct(b.dataset.toggleprod)));
+  $$('[data-trashprod]').forEach(b => b.addEventListener('click', () => trashProduct(b.dataset.trashprod)));
+  $$('[data-restoreprod]').forEach(b => b.addEventListener('click', () => restoreProduct(b.dataset.restoreprod)));
+  $$('[data-purgeprod]').forEach(b => b.addEventListener('click', () => purgeProduct(b.dataset.purgeprod)));
+}
+
+/** id = null for a new fragrance. */
+function editProduct(id){
+  const all = [...state.products, ...state.trashedProducts];
+  const p = id ? all.find(x => x.id === id) : { ...BLANK_PRODUCT };
+  if(!p) return;
+
+  const isNew = !id;
+
+  openDrawer(isNew ? 'New fragrance' : p.name, `
+    <div class="prod-preview" id="prodPreview"
+         style="background-image:url('${esc(p.image)}')"></div>
+
+    <div class="a-field">
+      <label for="pName">Name</label>
+      <input id="pName" type="text" value="${esc(p.name)}" placeholder="Noir Oud">
+    </div>
+
+    <div class="a-grid-2">
+      <div class="a-field">
+        <label for="pFamily">Fragrance family</label>
+        <input id="pFamily" type="text" value="${esc(p.family)}" placeholder="Woody Oriental">
+      </div>
+      <div class="a-field">
+        <label for="pPrice">Price (Rs.)</label>
+        <input id="pPrice" type="number" min="0" value="${esc(p.price)}">
+      </div>
+    </div>
+
+    <div class="a-grid-2">
+      <div class="a-field">
+        <label for="pSize">Bottle size</label>
+        <input id="pSize" type="text" value="${esc(p.size)}" placeholder="50 ml">
+      </div>
+      <div class="a-field">
+        <label for="pLasts">Longevity</label>
+        <input id="pLasts" type="text" value="${esc(p.lasts)}" placeholder="8–10 hours">
+      </div>
+    </div>
+
+    <div class="a-field">
+      <label for="pConc">Concentration</label>
+      <input id="pConc" type="text" value="${esc(p.conc)}" placeholder="Eau de Parfum · 24%">
+    </div>
+
+    <div class="a-field">
+      <label for="pImage">Image URL</label>
+      <input id="pImage" type="url" value="${esc(p.image)}" placeholder="https://…">
+      <p class="a-field-hint">Paste any direct image link. A tall photo (3:4) fits the card best.</p>
+    </div>
+
+    <div class="a-field">
+      <label for="pDesc">Description</label>
+      <textarea id="pDesc" rows="5" placeholder="How does it open, settle and dry down?">${esc(p.description)}</textarea>
+    </div>
+
+    <div class="a-field">
+      <label for="pTop">Top notes</label>
+      <input id="pTop" type="text" value="${esc(p.note_top)}" placeholder="Bergamot, Pink Pepper, Saffron">
+    </div>
+    <div class="a-field">
+      <label for="pHeart">Heart notes</label>
+      <input id="pHeart" type="text" value="${esc(p.note_heart)}" placeholder="Oud, Rose, Patchouli">
+    </div>
+    <div class="a-field">
+      <label for="pBase">Base notes</label>
+      <input id="pBase" type="text" value="${esc(p.note_base)}" placeholder="Leather, Vetiver, Amber">
+    </div>
+
+    <div class="a-grid-2">
+      <div class="a-field">
+        <label for="pActive">Shown on the shop</label>
+        <select id="pActive">
+          <option value="true"  ${p.active ? 'selected' : ''}>Yes — live</option>
+          <option value="false" ${!p.active ? 'selected' : ''}>No — hidden</option>
+        </select>
+      </div>
+      <div class="a-field">
+        <label for="pOrder">Sort order</label>
+        <input id="pOrder" type="number" value="${esc(p.sort_order)}">
+        <p class="a-field-hint">Lower shows first.</p>
+      </div>
+    </div>
+
+    <p class="login-error" id="pError" hidden></p>
+
+    <div class="drawer-actions">
+      <button class="a-btn a-btn-primary" id="pSave">${isNew ? 'Add fragrance' : 'Save changes'}</button>
+      ${isNew ? '' : `<button class="a-btn a-btn-danger" id="pTrash">Move to trash</button>`}
+    </div>`);
+
+  /* live image preview */
+  $('#pImage').addEventListener('input', e => {
+    $('#prodPreview').style.backgroundImage = `url('${e.target.value}')`;
+  });
+
+  $('#pSave').addEventListener('click', () => saveProduct(id));
+  $('#pTrash')?.addEventListener('click', () => trashProduct(id));
+}
+
+async function saveProduct(id){
+  const val = sel => ($(sel)?.value || '').trim();
+  const name = val('#pName');
+  const price = Number($('#pPrice').value);
+
+  const err = $('#pError');
+  const fail = msg => { err.textContent = msg; err.hidden = false; };
+  err.hidden = true;
+
+  if(name.length < 2)        return fail('Give the fragrance a name.');
+  if(!(price >= 0))          return fail('Enter a valid price.');
+  if(!val('#pImage'))        return fail('An image URL is needed for the card.');
+
+  const row = {
+    id: id || slugify(name),
+    name,
+    family: val('#pFamily'),
+    price,
+    size: val('#pSize') || '50 ml',
+    conc: val('#pConc'),
+    lasts: val('#pLasts'),
+    image: val('#pImage'),
+    description: val('#pDesc'),
+    note_top: val('#pTop'),
+    note_heart: val('#pHeart'),
+    note_base: val('#pBase'),
+    active: $('#pActive').value === 'true',
+    sort_order: Number($('#pOrder').value) || 100,
+    deleted_at: null
+  };
+
+  if(!row.id) return fail('That name cannot be turned into a web address. Use letters or numbers.');
+
+  /* A new fragrance must not reuse an existing slug. */
+  if(!id){
+    const taken = [...state.products, ...state.trashedProducts].some(p => p.id === row.id);
+    if(taken) return fail(`"${row.id}" already exists. Pick a slightly different name.`);
+  }
+
+  const btn = $('#pSave');
+  btn.disabled = true;
+
+  const { error } = await supabase
+    .from('perfumeswebsite_products')
+    .upsert(row, { onConflict: 'id' });
+
+  btn.disabled = false;
+
+  if(error){ fail(error.message); return; }
+
+  logActivity('product', row.id, id ? 'updated' : 'created', row.name);
+  toast(id ? 'Fragrance saved' : 'Fragrance added');
+  closeDrawer();
+  await fetchAll();
+  render();
+}
+
+async function toggleProduct(id){
+  const p = state.products.find(x => x.id === id);
+  if(!p) return;
+  await patchProduct(id, { active: !p.active }, p.active ? 'Hidden from shop' : 'Live on shop');
+}
+
+async function trashProduct(id){
+  await patchProduct(id, { deleted_at: new Date().toISOString() }, 'Moved to trash');
+  closeDrawer();
+}
+
+async function restoreProduct(id){
+  await patchProduct(id, { deleted_at: null }, 'Fragrance restored');
+}
+
+async function patchProduct(id, patch, message){
+  const { error } = await supabase
+    .from('perfumeswebsite_products')
+    .update(patch)
+    .eq('id', id);
+
+  if(error){ toast('Update failed'); console.error(error); return; }
+
+  toast(message);
+  await fetchAll();
+  render();
+}
+
+async function purgeProduct(id){
+  if(!confirm('Delete this fragrance permanently? Past orders keep their own copy of the name and price, so they stay intact.')) return;
+
+  const { error } = await supabase.from('perfumeswebsite_products').delete().eq('id', id);
+  if(error){ toast('Delete failed'); return; }
+
+  toast('Deleted permanently');
+  await fetchAll();
+  render();
+}
+
 /* ---------- 9. REVIEWS ---------- */
 function renderReviews(host){
   const pending  = state.reviews.filter(r => !r.approved);
@@ -1008,6 +1308,14 @@ function renderTrash(host){
       <div class="a-table-wrap">${ordersTable(state.trashed, { trash: true })}</div>
     </div>
 
+    <div class="a-card" style="margin-bottom:16px">
+      <div class="a-card-head">
+        <h2>Deleted fragrances</h2>
+        <span>${state.trashedProducts.length} in trash</span>
+      </div>
+      <div class="a-table-wrap">${productsTable(state.trashedProducts, { trash: true })}</div>
+    </div>
+
     <div class="a-card">
       <div class="a-card-head">
         <h2>Deleted reviews</h2>
@@ -1036,6 +1344,7 @@ function renderTrash(host){
 
   wireOrderRows();
   wireReviewRows();
+  wireProductRows();
 }
 
 /* ---------- 11. SETTINGS ---------- */
