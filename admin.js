@@ -16,7 +16,8 @@
 
 import {
   supabase, STORE, loadSettings,
-  money, esc, waLink, normalisePhone
+  money, esc, waLink, normalisePhone,
+  uploadImage, deleteImage
 } from './supabase.js';
 
 /* ---------- 1. STATE & HELPERS ---------- */
@@ -882,10 +883,16 @@ const slugify = str => String(str).toLowerCase().trim()
 
 const BLANK_PRODUCT = {
   id: '', name: '', family: '', price: 0, size: '50 ml',
-  conc: 'Eau de Parfum · 24%', lasts: '8–10 hours', image: '',
+  conc: 'Eau de Parfum · 24%', lasts: '8–10 hours',
+  image: '', images: [],
   description: '', note_top: '', note_heart: '', note_base: '',
   active: true, sort_order: 100
 };
+
+const MAX_IMAGES = 5;
+/* Images being edited right now. Uploaded straight away so the
+   preview is real, then written to the row when you save. */
+let draftImages = [];
 
 function renderProducts(host){
   host.innerHTML = `
@@ -931,7 +938,10 @@ function productsTable(list, { trash = false } = {}){
       <tbody>
         ${list.map(p => `
           <tr>
-            <td><span class="prod-thumb" style="background-image:url('${esc(p.image)}')"></span></td>
+            <td>
+              <span class="prod-thumb" style="background-image:url('${esc((p.images && p.images[0]) || p.image)}')"></span>
+              ${(p.images?.length || 0) > 1 ? `<span class="prod-count">${p.images.length}</span>` : ''}
+            </td>
             <td>
               ${esc(p.name)}
               <div class="cell-muted">${esc(p.size)} · ${esc(p.id)}</div>
@@ -973,8 +983,16 @@ function editProduct(id){
   const isNew = !id;
 
   openDrawer(isNew ? 'New fragrance' : p.name, `
-    <div class="prod-preview" id="prodPreview"
-         style="background-image:url('${esc(p.image)}')"></div>
+    <div class="a-field">
+      <label>Photographs <span class="label-soft">(1 minimum, ${MAX_IMAGES} maximum)</span></label>
+      <div class="upload-grid" id="uploadGrid"></div>
+      <input type="file" id="imageInput" accept="image/*" multiple hidden>
+      <p class="a-field-hint">
+        JPG, PNG or WebP up to 5 MB each. A tall photo (3:4) fits the card best.
+        The first image is the one shown on the collection page — drag is not needed,
+        just remove and re-add to reorder.
+      </p>
+    </div>
 
     <div class="a-field">
       <label for="pName">Name</label>
@@ -1006,12 +1024,6 @@ function editProduct(id){
     <div class="a-field">
       <label for="pConc">Concentration</label>
       <input id="pConc" type="text" value="${esc(p.conc)}" placeholder="Eau de Parfum · 24%">
-    </div>
-
-    <div class="a-field">
-      <label for="pImage">Image URL</label>
-      <input id="pImage" type="url" value="${esc(p.image)}" placeholder="https://…">
-      <p class="a-field-hint">Paste any direct image link. A tall photo (3:4) fits the card best.</p>
     </div>
 
     <div class="a-field">
@@ -1054,13 +1066,72 @@ function editProduct(id){
       ${isNew ? '' : `<button class="a-btn a-btn-danger" id="pTrash">Move to trash</button>`}
     </div>`);
 
-  /* live image preview */
-  $('#pImage').addEventListener('input', e => {
-    $('#prodPreview').style.backgroundImage = `url('${e.target.value}')`;
-  });
+  draftImages = (p.images && p.images.length) ? [...p.images] : (p.image ? [p.image] : []);
+  paintUploads();
+
+  $('#imageInput').addEventListener('change', e => handleFiles(e.target.files, id || slugify($('#pName').value) || 'new'));
 
   $('#pSave').addEventListener('click', () => saveProduct(id));
   $('#pTrash')?.addEventListener('click', () => trashProduct(id));
+}
+
+function paintUploads(){
+  const grid = $('#uploadGrid');
+  if(!grid) return;
+
+  const slots = draftImages.map((src, i) => `
+    <div class="upload-item${i === 0 ? ' is-primary' : ''}">
+      <span class="upload-thumb" style="background-image:url('${esc(src)}')"></span>
+      ${i === 0 ? '<span class="upload-badge">Main</span>' : ''}
+      <button class="upload-remove" data-rmimg="${i}" aria-label="Remove image">&times;</button>
+    </div>`).join('');
+
+  const adder = draftImages.length < MAX_IMAGES
+    ? `<button class="upload-add" id="uploadAdd">
+         <span>+</span>
+         Add photo
+         <em>${draftImages.length}/${MAX_IMAGES}</em>
+       </button>`
+    : `<p class="upload-full">Maximum of ${MAX_IMAGES} photos reached.</p>`;
+
+  grid.innerHTML = slots + adder;
+
+  $('#uploadAdd')?.addEventListener('click', () => $('#imageInput').click());
+  $$('[data-rmimg]').forEach(b => b.addEventListener('click', () => {
+    draftImages.splice(Number(b.dataset.rmimg), 1);
+    paintUploads();
+  }));
+}
+
+async function handleFiles(fileList, productId){
+  const files = Array.from(fileList || []);
+  if(files.length === 0) return;
+
+  const room = MAX_IMAGES - draftImages.length;
+  if(room <= 0){ toast(`Only ${MAX_IMAGES} photos allowed`); return; }
+
+  const batch = files.slice(0, room);
+  if(files.length > room) toast(`Only ${room} more photo(s) fit`);
+
+  const grid = $('#uploadGrid');
+  grid.insertAdjacentHTML('beforeend',
+    `<div class="upload-item is-busy" id="uploadBusy"><span>Uploading…</span></div>`);
+
+  for(const file of batch){
+    if(!file.type.startsWith('image/')){ toast(`${file.name} is not an image`); continue; }
+    if(file.size > 5 * 1024 * 1024){ toast(`${file.name} is over 5 MB`); continue; }
+
+    try{
+      const url = await uploadImage(file, productId);
+      draftImages.push(url);
+    }catch(err){
+      console.error(err);
+      toast(`Upload failed: ${err.message || 'unknown error'}`);
+    }
+  }
+
+  $('#imageInput').value = '';
+  paintUploads();
 }
 
 async function saveProduct(id){
@@ -1072,9 +1143,9 @@ async function saveProduct(id){
   const fail = msg => { err.textContent = msg; err.hidden = false; };
   err.hidden = true;
 
-  if(name.length < 2)        return fail('Give the fragrance a name.');
-  if(!(price >= 0))          return fail('Enter a valid price.');
-  if(!val('#pImage'))        return fail('An image URL is needed for the card.');
+  if(name.length < 2)         return fail('Give the fragrance a name.');
+  if(!(price >= 0))           return fail('Enter a valid price.');
+  if(draftImages.length === 0) return fail('Add at least one photograph.');
 
   const row = {
     id: id || slugify(name),
@@ -1084,7 +1155,8 @@ async function saveProduct(id){
     size: val('#pSize') || '50 ml',
     conc: val('#pConc'),
     lasts: val('#pLasts'),
-    image: val('#pImage'),
+    images: draftImages,
+    image: draftImages[0],          /* kept in step for older code paths */
     description: val('#pDesc'),
     note_top: val('#pTop'),
     note_heart: val('#pHeart'),
@@ -1161,26 +1233,81 @@ async function purgeProduct(id){
 
 /* ---------- 9. REVIEWS ---------- */
 function renderReviews(host){
-  const pending  = state.reviews.filter(r => !r.approved);
-  const approved = state.reviews.filter(r =>  r.approved);
+  const pending = state.reviews.filter(r => !r.approved);
+
+  /* group everything by fragrance so each product has its own list */
+  const groups = new Map();
+  state.reviews.forEach(r => {
+    const key = r.product_id || '__general';
+    if(!groups.has(key)){
+      groups.set(key, {
+        id: key,
+        name: r.product_name || 'General store reviews',
+        list: []
+      });
+    }
+    groups.get(key).list.push(r);
+  });
+
+  /* products with no reviews yet still deserve a row */
+  state.products.forEach(p => {
+    if(!groups.has(p.id)) groups.set(p.id, { id: p.id, name: p.name, list: [] });
+  });
+
+  const ordered = [...groups.values()].sort((a, b) => b.list.length - a.list.length);
 
   host.innerHTML = `
     ${pending.length ? `
-      <div class="a-card" style="margin-bottom:16px">
+      <div class="a-card a-card-alert" style="margin-bottom:16px">
         <div class="a-card-head">
           <h2>Waiting for approval</h2>
-          <span>${pending.length} pending</span>
+          <span>${pending.length} pending across all fragrances</span>
         </div>
         <div class="a-table-wrap">${reviewsTable(pending)}</div>
       </div>` : ''}
 
     <div class="a-card">
       <div class="a-card-head">
-        <h2>Published reviews</h2>
-        <span>${approved.length} live on the site</span>
+        <h2>Reviews by fragrance</h2>
+        <span>Click a fragrance to open its reviews</span>
       </div>
-      <div class="a-table-wrap">${reviewsTable(approved)}</div>
+
+      <div class="accordion">
+        ${ordered.map(g => {
+          const live = g.list.filter(r => r.approved).length;
+          const wait = g.list.length - live;
+          const avg = g.list.length
+            ? (g.list.reduce((a, r) => a + r.rating, 0) / g.list.length).toFixed(1)
+            : '—';
+
+          return `
+            <div class="acc-item" data-group="${esc(g.id)}">
+              <button class="acc-head" data-acc="${esc(g.id)}">
+                <span class="acc-caret" aria-hidden="true">›</span>
+                <span class="acc-name">${esc(g.name)}</span>
+                <span class="acc-meta">
+                  <span class="acc-stars">${avg === '—' ? '' : '★'} ${avg}</span>
+                  <span class="tag tag-completed">${live} live</span>
+                  ${wait ? `<span class="tag tag-pending">${wait} pending</span>` : ''}
+                </span>
+              </button>
+              <div class="acc-body" hidden>
+                ${g.list.length
+                  ? `<div class="a-table-wrap">${reviewsTable(g.list)}</div>`
+                  : '<p class="a-empty">No reviews for this fragrance yet.</p>'}
+              </div>
+            </div>`;
+        }).join('')}
+      </div>
     </div>`;
+
+  $$('[data-acc]').forEach(btn => btn.addEventListener('click', () => {
+    const item = btn.closest('.acc-item');
+    const body = $('.acc-body', item);
+    const open = !body.hidden;
+    body.hidden = open;
+    item.classList.toggle('is-open', !open);
+  }));
 
   wireReviewRows();
 }
