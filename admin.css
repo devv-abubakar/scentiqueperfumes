@@ -32,6 +32,11 @@
 
 *,*::before,*::after{ box-sizing: border-box; }
 
+/* The hidden attribute must win over any display rule below.
+   Without this, .login{display:grid} keeps the login screen on
+   screen even after it is marked hidden. */
+[hidden]{ display: none !important; }
+
 body.admin{
   margin: 0;
   background: var(--bg);
