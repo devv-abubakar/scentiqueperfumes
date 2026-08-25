@@ -535,3 +535,75 @@ table.a-table{ width: 100%; border-collapse: collapse; min-width: 720px; }
   .a-toast{ left: 16px; right: 16px; transform: translateY(20px); text-align: center; }
   .a-toast.is-visible{ transform: none; }
 }
+
+
+/* ============================================================
+   10. PRODUCTS
+   ============================================================ */
+.prod-thumb{
+  display: block;
+  width: 44px; height: 56px;
+  border-radius: 3px;
+  background: var(--line) center/cover no-repeat;
+}
+
+.prod-preview{
+  width: 100%;
+  aspect-ratio: 3 / 2;
+  border-radius: 3px;
+  background: var(--line) center/cover no-repeat;
+  margin-bottom: 22px;
+}
+
+/* ============================================================
+   11. MOBILE POLISH
+   ============================================================ */
+@media (max-width: 860px){
+  /* the sidebar is an overlay on small screens, so dim the page
+     behind it and let a tap outside close it */
+  .side::after{
+    content: '';
+    position: fixed;
+    inset: 0 0 0 250px;
+    background: rgba(0,0,0,.4);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity .35s var(--ease);
+  }
+  .side.is-open::after{ opacity: 1; pointer-events: auto; }
+
+  .topbar{ gap: 12px; }
+  .topbar-right .a-btn{ padding: 10px 14px; letter-spacing: .12em; }
+
+  .a-card{ padding: 20px 18px; }
+  .a-card-head h2{ font-size: 17px; }
+  .chart-box{ height: 220px; }
+
+  /* tables scroll sideways rather than squashing */
+  .a-table-wrap{ -webkit-overflow-scrolling: touch; }
+  .a-table th, .a-table td{ padding: 12px 14px; }
+
+  /* stacked action buttons stay tappable */
+  .cell-actions{ text-align: left; }
+  .a-mini{
+    display: inline-block;
+    margin: 2px 4px 2px 0;
+    padding: 8px 12px;
+  }
+
+  .a-drawer{ width: 100%; }
+  .a-drawer-body{ padding: 20px 18px calc(34px + env(safe-area-inset-bottom)); }
+  .detail-row{ grid-template-columns: 96px 1fr; gap: 10px; font-size: 13.5px; }
+
+  .table-tools{ gap: 8px; }
+  .table-tools .a-btn{ flex: 1 1 auto; }
+}
+
+@media (max-width: 520px){
+  .views{ padding: 16px; }
+  .topbar-title{ font-size: 18px; }
+  .kpi-value{ font-size: 23px; }
+  .prod-thumb{ width: 36px; height: 46px; }
+  .detail-row{ grid-template-columns: 1fr; gap: 2px; }
+  .detail-row dt{ font-size: 10.5px; }
+}
